@@ -203,18 +203,20 @@ class ExecutionEngine {
         // 这些动作在 content script 中执行
         return await this.executeInContentScript(tabId, { type, params })
 
-      case ACTION_TYPES.EXTRACT:
+      case ACTION_TYPES.EXTRACT: {
         const result = await this.executeInContentScript(tabId, { type, params })
         // 保存到变量
         if (result && params.variable) {
           this.variables[params.variable] = result.value
         }
         return result
+      }
 
-      case ACTION_TYPES.IF:
+      case ACTION_TYPES.IF: {
         // 条件判断
         const conditionMet = await this.evaluateCondition(params, tabId)
         return { conditionMet }
+      }
 
       default:
         throw new Error(`未知的动作类型: ${type}`)
@@ -283,9 +285,10 @@ class ExecutionEngine {
       case 'variable_equals':
         return this.variables[variable] === value
 
-      case 'variable_contains':
+      case 'variable_contains': {
         const varValue = this.variables[variable]
         return typeof varValue === 'string' && varValue.includes(value)
+      }
 
       default:
         return false

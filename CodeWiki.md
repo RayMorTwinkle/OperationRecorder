@@ -81,12 +81,14 @@ graph TD
 **功能**：后台脚本的主入口，负责初始化核心模块、监听消息和处理各种事件。
 
 **关键功能**：
+
 - 初始化 Executor、Scheduler 和 MCP Server
 - 处理来自 Popup、Content Script 的消息
 - 管理设置页面的打开和关闭
 - 处理发布文章请求
 
 **主要消息处理**：
+
 - `OPEN_SIDEPANEL` - 打开侧边栏
 - `TOGGLE_OPTIONS` - 切换设置页面
 - `PUBLISH_ARTICLE` - 处理发布文章请求
@@ -102,6 +104,7 @@ graph TD
 **功能**：负责执行录制的脚本，模拟用户操作。
 
 **主要功能**：
+
 - 解析脚本动作
 - 在指定标签页执行动作
 - 处理执行过程中的错误
@@ -113,6 +116,7 @@ graph TD
 **功能**：管理脚本的调度执行，支持定时任务。
 
 **主要功能**：
+
 - 初始化调度器
 - 管理定时任务
 - 执行调度的脚本
@@ -124,6 +128,7 @@ graph TD
 **功能**：提供 MCP (Model Context Protocol) 服务，用于与其他组件通信。
 
 **主要功能**：
+
 - 处理 MCP 消息
 - 管理 MCP 连接
 
@@ -134,6 +139,7 @@ graph TD
 **功能**：管理扩展的存储，包括脚本、录制数据等。
 
 **主要功能**：
+
 - 保存和加载脚本
 - 导出和导入数据
 - 清空数据
@@ -147,11 +153,13 @@ graph TD
 **功能**：内容脚本的主入口，负责与页面和后台脚本通信。
 
 **关键功能**：
+
 - 监听来自页面的 postMessage 消息
 - 处理来自后台的消息
 - 执行录制和回放操作
 
 **主要消息处理**：
+
 - `START_RECORDING` - 开始录制
 - `PAUSE_EXECUTION` - 暂停录制
 - `RESUME_EXECUTION` - 恢复录制
@@ -169,6 +177,7 @@ graph TD
 **功能**：核心录制逻辑，监听页面事件并记录用户操作。
 
 **主要功能**：
+
 - 开始、暂停、恢复和停止录制
 - 监听页面事件（点击、输入、变化、键盘、滚动、导航）
 - 记录用户操作
@@ -176,9 +185,11 @@ graph TD
 - 提供录制状态和动作列表
 
 **关键类**：
+
 - `Recorder` - 录制器类，包含录制的核心逻辑
 
 **主要方法**：
+
 - `start()` - 开始录制
 - `pause()` - 暂停录制
 - `resume()` - 恢复录制
@@ -202,6 +213,7 @@ graph TD
 **功能**：录制时显示的悬浮工具栏，提供录制控制和状态显示。
 
 **主要功能**：
+
 - 显示和隐藏悬浮工具栏
 - 提供录制控制按钮
 - 显示录制状态和动作计数
@@ -213,6 +225,7 @@ graph TD
 **功能**：生成元素的选择器，用于精确定位页面元素。
 
 **主要功能**：
+
 - 生成元素的 CSS 选择器
 - 获取元素信息
 
@@ -225,12 +238,14 @@ graph TD
 **功能**：扩展的弹出页面，提供录制控制和脚本管理功能。
 
 **主要功能**：
+
 - 开始/停止录制
 - 显示脚本列表
 - 执行、导出、删除脚本
 - 创建新脚本
 
 **核心组件**：
+
 - 录制控制区
 - 脚本列表
 - 新建脚本弹窗
@@ -242,6 +257,7 @@ graph TD
 **功能**：使用 Pinia 管理应用状态，包括脚本和录制状态。
 
 **主要 store**：
+
 - `scripts.js` - 管理脚本
 - `recording.js` - 管理录制状态
 - `settings.js` - 管理设置
@@ -253,6 +269,7 @@ graph TD
 **功能**：定义消息类型和动作类型。
 
 **主要类型**：
+
 - `messages.js` - 消息类型定义
 - `actions.js` - 动作类型定义
 
@@ -267,6 +284,7 @@ graph TD
 **功能**：核心录制逻辑，监听页面事件并记录用户操作。
 
 **构造函数**：
+
 ```javascript
 constructor() {
   this.status = RECORDING_STATUS.IDLE
@@ -286,15 +304,15 @@ constructor() {
 
 **主要方法**：
 
-| 方法名 | 描述 | 参数 | 返回值 |
-|-------|------|------|-------|
-| `start()` | 开始录制 | 无 | 无 |
-| `pause()` | 暂停录制 | 无 | 无 |
-| `resume()` | 恢复录制 | 无 | 无 |
-| `stop()` | 停止录制 | 无 | `{ actions, startTime, endTime, duration }` |
-| `getStatus()` | 获取录制状态 | 无 | `{ status, actionCount, duration }` |
-| `getActions()` | 获取录制的动作 | 无 | 动作数组 |
-| `clearActions()` | 清空录制的动作 | 无 | 无 |
+| 方法名           | 描述           | 参数 | 返回值                                      |
+| ---------------- | -------------- | ---- | ------------------------------------------- |
+| `start()`        | 开始录制       | 无   | 无                                          |
+| `pause()`        | 暂停录制       | 无   | 无                                          |
+| `resume()`       | 恢复录制       | 无   | 无                                          |
+| `stop()`         | 停止录制       | 无   | `{ actions, startTime, endTime, duration }` |
+| `getStatus()`    | 获取录制状态   | 无   | `{ status, actionCount, duration }`         |
+| `getActions()`   | 获取录制的动作 | 无   | 动作数组                                    |
+| `clearActions()` | 清空录制的动作 | 无   | 无                                          |
 
 ### 4.2 后台消息处理函数
 
@@ -304,12 +322,12 @@ constructor() {
 
 **主要函数**：
 
-| 函数名 | 描述 | 参数 | 返回值 |
-|-------|------|------|-------|
+| 函数名                             | 描述                            | 参数                            | 返回值    |
+| ---------------------------------- | ------------------------------- | ------------------------------- | --------- |
 | `handleOperationRecorderMessage()` | 处理 OperationRecorder 相关消息 | `request, sender, sendResponse` | `boolean` |
-| `handleOpenSidepanel()` | 处理打开侧边栏 | `sendResponse` | 无 |
-| `handleToggleOptions()` | 处理切换设置页面 | `sendResponse` | 无 |
-| `handlePublishArticle()` | 处理发布文章 | `request, sendResponse` | 无 |
+| `handleOpenSidepanel()`            | 处理打开侧边栏                  | `sendResponse`                  | 无        |
+| `handleToggleOptions()`            | 处理切换设置页面                | `sendResponse`                  | 无        |
+| `handlePublishArticle()`           | 处理发布文章                    | `request, sendResponse`         | 无        |
 
 ### 4.3 内容脚本消息处理函数
 
@@ -319,13 +337,13 @@ constructor() {
 
 **主要函数**：
 
-| 函数名 | 描述 | 参数 | 返回值 |
-|-------|------|------|-------|
-| `executeAction()` | 执行动作 | `action` | `Promise<any>` |
-| `highlightElement()` | 高亮元素 | `element` | 无 |
-| `removeHighlight()` | 移除高亮 | 无 | 无 |
-| `sleep()` | 等待指定时间 | `ms` | `Promise<void>` |
-| `waitForElement()` | 等待元素出现 | `selector, timeout` | `Promise<Element>` |
+| 函数名               | 描述         | 参数                | 返回值             |
+| -------------------- | ------------ | ------------------- | ------------------ |
+| `executeAction()`    | 执行动作     | `action`            | `Promise<any>`     |
+| `highlightElement()` | 高亮元素     | `element`           | 无                 |
+| `removeHighlight()`  | 移除高亮     | 无                  | 无                 |
+| `sleep()`            | 等待指定时间 | `ms`                | `Promise<void>`    |
+| `waitForElement()`   | 等待元素出现 | `selector, timeout` | `Promise<Element>` |
 
 ### 4.4 前端组件函数
 
@@ -335,47 +353,48 @@ constructor() {
 
 **主要函数**：
 
-| 函数名 | 描述 | 参数 | 返回值 |
-|-------|------|------|-------|
-| `startRecording()` | 开始录制 | 无 | `Promise<void>` |
-| `stopRecording()` | 停止录制 | 无 | `Promise<void>` |
-| `executeScript()` | 执行脚本 | `scriptId` | `Promise<void>` |
-| `deleteScript()` | 删除脚本 | `scriptId` | `Promise<void>` |
-| `createNewScript()` | 创建新脚本 | 无 | `Promise<void>` |
-| `exportScript()` | 导出脚本 | `scriptId` | `Promise<void>` |
+| 函数名              | 描述       | 参数       | 返回值          |
+| ------------------- | ---------- | ---------- | --------------- |
+| `startRecording()`  | 开始录制   | 无         | `Promise<void>` |
+| `stopRecording()`   | 停止录制   | 无         | `Promise<void>` |
+| `executeScript()`   | 执行脚本   | `scriptId` | `Promise<void>` |
+| `deleteScript()`    | 删除脚本   | `scriptId` | `Promise<void>` |
+| `createNewScript()` | 创建新脚本 | 无         | `Promise<void>` |
+| `exportScript()`    | 导出脚本   | `scriptId` | `Promise<void>` |
 
 ## 5. 技术栈与依赖
 
 ### 5.1 核心依赖
 
-| 依赖 | 版本 | 用途 | 来源 |
-|------|------|------|------|
-| Vue 3 | ^3.2.37 | 前端框架 | [package.json](file:///workspace/package.json) |
-| Vite | ^7.1.7 | 构建工具 | [package.json](file:///workspace/package.json) |
-| Pinia | ^3.0.4 | 状态管理 | [package.json](file:///workspace/package.json) |
-| Naive UI | ^2.40.1 | UI 组件库 | [package.json](file:///workspace/package.json) |
-| UnoCSS | ^66.5.2 | 原子化 CSS 引擎 | [package.json](file:///workspace/package.json) |
+| 依赖                  | 版本    | 用途             | 来源                                           |
+| --------------------- | ------- | ---------------- | ---------------------------------------------- |
+| Vue 3                 | ^3.2.37 | 前端框架         | [package.json](file:///workspace/package.json) |
+| Vite                  | ^7.1.7  | 构建工具         | [package.json](file:///workspace/package.json) |
+| Pinia                 | ^3.0.4  | 状态管理         | [package.json](file:///workspace/package.json) |
+| Naive UI              | ^2.40.1 | UI 组件库        | [package.json](file:///workspace/package.json) |
+| UnoCSS                | ^66.5.2 | 原子化 CSS 引擎  | [package.json](file:///workspace/package.json) |
 | webextension-polyfill | ^0.12.0 | 跨浏览器扩展 API | [package.json](file:///workspace/package.json) |
-| loglevel | ^1.9.2 | 日志管理 | [package.json](file:///workspace/package.json) |
-| uuid | ^13.0.0 | 生成唯一 ID | [package.json](file:///workspace/package.json) |
-| vue-draggable-plus | ^0.6.1 | 拖拽功能 | [package.json](file:///workspace/package.json) |
+| loglevel              | ^1.9.2  | 日志管理         | [package.json](file:///workspace/package.json) |
+| uuid                  | ^13.0.0 | 生成唯一 ID      | [package.json](file:///workspace/package.json) |
+| vue-draggable-plus    | ^0.6.1  | 拖拽功能         | [package.json](file:///workspace/package.json) |
 
 ### 5.2 开发依赖
 
-| 依赖 | 版本 | 用途 | 来源 |
-|------|------|------|------|
+| 依赖               | 版本           | 用途                  | 来源                                           |
+| ------------------ | -------------- | --------------------- | ---------------------------------------------- |
 | @crxjs/vite-plugin | ^2.0.0-beta.26 | Chrome 扩展 Vite 插件 | [package.json](file:///workspace/package.json) |
-| @vitejs/plugin-vue | ^6.0.1 | Vue Vite 插件 | [package.json](file:///workspace/package.json) |
-| ESLint | ^9.36.0 | 代码质量检查 | [package.json](file:///workspace/package.json) |
-| Prettier | ^3.0.3 | 代码格式化 | [package.json](file:///workspace/package.json) |
-| crx3 | ^1.1.3 | CRX 打包工具 | [package.json](file:///workspace/package.json) |
-| sharp | ^0.33.0 | 图片处理 | [package.json](file:///workspace/package.json) |
+| @vitejs/plugin-vue | ^6.0.1         | Vue Vite 插件         | [package.json](file:///workspace/package.json) |
+| ESLint             | ^9.36.0        | 代码质量检查          | [package.json](file:///workspace/package.json) |
+| Prettier           | ^3.0.3         | 代码格式化            | [package.json](file:///workspace/package.json) |
+| crx3               | ^1.1.3         | CRX 打包工具          | [package.json](file:///workspace/package.json) |
+| sharp              | ^0.33.0        | 图片处理              | [package.json](file:///workspace/package.json) |
 
 ## 6. 项目运行方式
 
 ### 6.1 开发模式
 
 1. 安装依赖：
+
    ```bash
    pnpm install
    # 或
@@ -383,6 +402,7 @@ constructor() {
    ```
 
 2. 启动开发服务器：
+
    ```bash
    pnpm dev
    # 或
@@ -401,6 +421,7 @@ constructor() {
 ### 6.2 构建与打包
 
 1. 构建项目：
+
    ```bash
    pnpm build
    # 或
@@ -408,6 +429,7 @@ constructor() {
    ```
 
 2. 打包为 ZIP：
+
    ```bash
    pnpm zip
    # 或
@@ -415,6 +437,7 @@ constructor() {
    ```
 
 3. 打包为 CRX：
+
    ```bash
    pnpm crx
    # 或
@@ -431,6 +454,7 @@ constructor() {
 ### 6.3 图标生成
 
 生成不同尺寸的图标：
+
 ```bash
 pnpm generate-logos
 # 或
@@ -441,24 +465,24 @@ npm run generate-logos
 
 OperationRecorder 扩展需要以下权限：
 
-| 权限 | 用途 | 来源 |
-|------|------|------|
-| sidePanel | 侧边栏访问 | [manifest.js](file:///workspace/src/manifest.js) |
-| storage | 数据存储 | [manifest.js](file:///workspace/src/manifest.js) |
-| cookies | Cookie 访问 | [manifest.js](file:///workspace/src/manifest.js) |
-| notifications | 通知功能 | [manifest.js](file:///workspace/src/manifest.js) |
-| tabs | 标签页管理 | [manifest.js](file:///workspace/src/manifest.js) |
-| clipboardWrite/clipboardRead | 剪贴板操作 | [manifest.js](file:///workspace/src/manifest.js) |
-| scripting | 脚本注入 | [manifest.js](file:///workspace/src/manifest.js) |
-| contentSettings | 内容设置 | [manifest.js](file:///workspace/src/manifest.js) |
-| downloads | 文件下载 | [manifest.js](file:///workspace/src/manifest.js) |
-| background | 后台运行 | [manifest.js](file:///workspace/src/manifest.js) |
-| alarms | 定时任务 | [manifest.js](file:///workspace/src/manifest.js) |
-| desktopCapture | 桌面捕获 | [manifest.js](file:///workspace/src/manifest.js) |
-| declarativeNetRequest | 网络请求拦截 | [manifest.js](file:///workspace/src/manifest.js) |
-| debugger | DevTools 调试 | [manifest.js](file:///workspace/src/manifest.js) |
-| history | 历史记录访问 | [manifest.js](file:///workspace/src/manifest.js) |
-| activeTab | 活跃标签页访问 | [manifest.js](file:///workspace/src/manifest.js) |
+| 权限                         | 用途           | 来源                                             |
+| ---------------------------- | -------------- | ------------------------------------------------ |
+| sidePanel                    | 侧边栏访问     | [manifest.js](file:///workspace/src/manifest.js) |
+| storage                      | 数据存储       | [manifest.js](file:///workspace/src/manifest.js) |
+| cookies                      | Cookie 访问    | [manifest.js](file:///workspace/src/manifest.js) |
+| notifications                | 通知功能       | [manifest.js](file:///workspace/src/manifest.js) |
+| tabs                         | 标签页管理     | [manifest.js](file:///workspace/src/manifest.js) |
+| clipboardWrite/clipboardRead | 剪贴板操作     | [manifest.js](file:///workspace/src/manifest.js) |
+| scripting                    | 脚本注入       | [manifest.js](file:///workspace/src/manifest.js) |
+| contentSettings              | 内容设置       | [manifest.js](file:///workspace/src/manifest.js) |
+| downloads                    | 文件下载       | [manifest.js](file:///workspace/src/manifest.js) |
+| background                   | 后台运行       | [manifest.js](file:///workspace/src/manifest.js) |
+| alarms                       | 定时任务       | [manifest.js](file:///workspace/src/manifest.js) |
+| desktopCapture               | 桌面捕获       | [manifest.js](file:///workspace/src/manifest.js) |
+| declarativeNetRequest        | 网络请求拦截   | [manifest.js](file:///workspace/src/manifest.js) |
+| debugger                     | DevTools 调试  | [manifest.js](file:///workspace/src/manifest.js) |
+| history                      | 历史记录访问   | [manifest.js](file:///workspace/src/manifest.js) |
+| activeTab                    | 活跃标签页访问 | [manifest.js](file:///workspace/src/manifest.js) |
 
 ## 8. 核心功能流程
 
@@ -496,21 +520,23 @@ OperationRecorder 扩展需要以下权限：
 
 ### 9.2 常用命令
 
-| 命令 | 描述 |
-|------|------|
-| `pnpm lint` | ESLint 检查并自动修复 |
-| `pnpm lint:check` | 仅检查不修复 |
-| `pnpm fmt` | Prettier 格式化 |
-| `pnpm format` | ESLint + Prettier 完整格式化 |
+| 命令              | 描述                         |
+| ----------------- | ---------------------------- |
+| `pnpm lint`       | ESLint 检查并自动修复        |
+| `pnpm lint:check` | 仅检查不修复                 |
+| `pnpm fmt`        | Prettier 格式化              |
+| `pnpm format`     | ESLint + Prettier 完整格式化 |
 
 ### 9.3 推荐的 Bug 排查流程
 
 1. 先运行完整格式化（修复大部分代码风格问题）：
+
    ```bash
    pnpm format
    ```
 
 2. 检查是否还有未自动修复的问题：
+
    ```bash
    pnpm lint:check
    ```
@@ -545,6 +571,7 @@ OperationRecorder 扩展需要以下权限：
 OperationRecorder 是一个功能强大的 Chrome 扩展，用于录制和回放用户在网页上的操作。它采用现代化的技术栈，包括 Vue 3、Vite、Pinia 等，提供了直观的用户界面和可靠的录制/回放功能。
 
 **核心优势**：
+
 - 易于使用的录制界面
 - 强大的脚本管理功能
 - 支持多种操作类型的录制
@@ -552,6 +579,7 @@ OperationRecorder 是一个功能强大的 Chrome 扩展，用于录制和回放
 - 模块化的代码结构
 
 **应用场景**：
+
 - 自动化重复性任务
 - 网站测试和质量保证
 - 教学和演示

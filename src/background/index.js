@@ -1,4 +1,8 @@
-import { MESSAGE_TYPES, createResponse } from '../render/types/messages.js'
+import {
+  MESSAGE_TYPES as MESSAGING_MESSAGE_TYPES,
+  createResponse,
+} from '../render/types/messages.js'
+import { MESSAGE_TYPES as ACTION_MESSAGE_TYPES } from '../render/types/actions.js'
 import { logger } from './logger.js'
 import { getExecutor } from './executor.js'
 import { getScheduler } from './scheduler.js'
@@ -40,15 +44,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // 处理原有的消息
   try {
     switch (request.type) {
-      case MESSAGE_TYPES.OPEN_SIDEPANEL:
+      case MESSAGING_MESSAGE_TYPES.OPEN_SIDEPANEL:
         handleOpenSidepanel(sendResponse)
         return true
 
-      case MESSAGE_TYPES.TOGGLE_OPTIONS:
+      case MESSAGING_MESSAGE_TYPES.TOGGLE_OPTIONS:
         handleToggleOptions(sendResponse)
         return true
 
-      case MESSAGE_TYPES.PUBLISH_ARTICLE:
+      case MESSAGING_MESSAGE_TYPES.PUBLISH_ARTICLE:
         handlePublishArticle(request, sendResponse)
         return true
 
@@ -178,7 +182,7 @@ function handlePublishArticle(request, sendResponse) {
   const reqMessage = request.message
   logger.info('处理发布文章请求', { traceId: reqMessage?.traceId })
 
-  if (reqMessage?.action === MESSAGE_TYPES.PUBLISH_ARTICLE) {
+  if (reqMessage?.action === MESSAGING_MESSAGE_TYPES.PUBLISH_ARTICLE) {
     sendResponse(
       createResponse(true, reqMessage.data, '插件收到了发布文章请求，正在执行', reqMessage.traceId),
     )

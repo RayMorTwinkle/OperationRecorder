@@ -7,9 +7,10 @@ import {
   TimeOutline,
   RefreshOutline,
   DownloadOutline,
-  UploadOutline,
+  CloudUploadOutline,
   TrashOutline,
   InformationCircleOutline,
+  RecordingOutline,
 } from '@vicons/ionicons5'
 import { useSettingsStore } from '../../store/settings.js'
 
@@ -222,7 +223,10 @@ async function clearAllData() {
                   <div
                     class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center"
                   >
-                    <n-icon :component="UploadOutline" class="text-green-600 dark:text-green-400" />
+                    <n-icon
+                      :component="CloudUploadOutline"
+                      class="text-green-600 dark:text-green-400"
+                    />
                   </div>
                   <div>
                     <div class="font-medium">导入数据</div>

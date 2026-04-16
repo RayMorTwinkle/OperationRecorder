@@ -1,8 +1,9 @@
 import {
-  MESSAGE_TYPES,
+  MESSAGE_TYPES as MESSAGING_MESSAGE_TYPES,
   POST_MESSAGE_TYPES,
   createPostMessageResponse,
 } from '../render/types/messages.js'
+import { MESSAGE_TYPES as ACTION_MESSAGE_TYPES } from '../render/types/actions.js'
 import { logger } from './logger.js'
 import { getRecorder } from './recorder.js'
 import { getOverlay } from './overlay.js'
@@ -38,7 +39,7 @@ function sendResponse(traceId, success, data, message, origin) {
 // 通知页面 contentScript 已加载
 window.postMessage(
   {
-    type: MESSAGE_TYPES.CONTENT_SCRIPT_READY,
+    type: MESSAGING_MESSAGE_TYPES.CONTENT_SCRIPT_READY,
     message: '插件已准备就绪',
   },
   '*',
@@ -64,12 +65,12 @@ window.addEventListener('message', async (event) => {
 
   try {
     switch (message.action) {
-      case MESSAGE_TYPES.PUBLISH_ARTICLE:
+      case MESSAGING_MESSAGE_TYPES.PUBLISH_ARTICLE:
         logger.info('处理发布文章请求，转发到 background', { traceId: message.traceId })
         // 转发到 background 脚本处理
         chrome.runtime.sendMessage(
           {
-            type: MESSAGE_TYPES.PUBLISH_ARTICLE,
+            type: MESSAGING_MESSAGE_TYPES.PUBLISH_ARTICLE,
             message: message,
             source: 'contentScript',
           },
@@ -114,7 +115,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   try {
     switch (request.type) {
       // 开始录制
-      case MESSAGE_TYPES.START_RECORDING:
+      case ACTION_MESSAGE_TYPES.START_RECORDING:
         logger.info('开始录制')
         overlay.show()
         sendResponse({
@@ -125,7 +126,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         break
 
       // 暂停录制
-      case MESSAGE_TYPES.PAUSE_EXECUTION:
+      case ACTION_MESSAGE_TYPES.PAUSE_EXECUTION:
         logger.info('暂停录制')
         recorder.pause()
         sendResponse({
@@ -136,7 +137,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         break
 
       // 恢复录制
-      case MESSAGE_TYPES.RESUME_EXECUTION:
+      case ACTION_MESSAGE_TYPES.RESUME_EXECUTION:
         logger.info('恢复录制')
         recorder.resume()
         sendResponse({
@@ -147,7 +148,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         break
 
       // 停止录制
-      case MESSAGE_TYPES.STOP_RECORDING: {
+      case ACTION_MESSAGE_TYPES.STOP_RECORDING: {
         logger.info('停止录制')
         const result = recorder.stop()
         overlay.hide()
