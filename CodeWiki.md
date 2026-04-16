@@ -8,9 +8,10 @@ OperationRecorder 是一个基于 Chrome 扩展的用户操作录制与回放工
 - **扩展类型**: Chrome Manifest V3 扩展
 - **主要功能**:
   - 录制用户在网页上的操作（点击、输入、导航等）
-  - 管理录制的脚本（创建、编辑、执行、导出）
+  - 管理录制的脚本（创建、编辑、执行、导出、导入）
   - 回放录制的操作序列
   - 提供多种前端界面（Popup、Sidepanel、Options等）
+  - 支持脚本的定时执行
 
 ## 2. 项目架构
 
@@ -35,6 +36,7 @@ src/
 │   └── selector.js      # 元素选择器
 ├── render/              # 前端页面
 │   ├── components/      # 组件
+│   │   └── login/       # 登录相关组件
 │   ├── composables/     # 组合式函数
 │   ├── constants/       # 常量
 │   ├── store/           # Pinia 状态管理
@@ -108,6 +110,25 @@ graph TD
 - 解析脚本动作
 - 在指定标签页执行动作
 - 处理执行过程中的错误
+- 支持动作执行的重试机制
+- 记录执行日志
+
+**关键类**：
+
+- `ExecutionEngine` - 执行引擎类，包含脚本执行的核心逻辑
+
+**主要方法**：
+
+- `execute(scriptId, options)` - 执行脚本
+- `executeAction(action, options)` - 执行单个动作
+- `performAction(type, params, tabId)` - 执行具体动作
+- `executeInContentScript(tabId, action)` - 在 Content Script 中执行动作
+- `evaluateCondition(params, tabId)` - 评估条件
+- `waitForTabLoad(tabId)` - 等待标签页加载完成
+- `pause()` - 暂停执行
+- `resume()` - 恢复执行
+- `stop()` - 停止执行
+- `getStatus()` - 获取执行状态
 
 [查看源码](file:///workspace/src/background/executor.js)
 
@@ -164,11 +185,19 @@ graph TD
 - `PAUSE_EXECUTION` - 暂停录制
 - `RESUME_EXECUTION` - 恢复录制
 - `STOP_RECORDING` - 停止录制
-- `GET_RECORDING_STATUS` - 获取录制状态
+- `RECORDING_STATUS_CHANGED` - 获取录制状态
 - `GET_RECORDED_ACTIONS` - 获取录制的动作
 - `CLEAR_RECORDED_ACTIONS` - 清空录制的动作
 - `HIGHLIGHT_ELEMENT` - 高亮元素
 - `EXECUTE_ACTION` - 执行动作
+
+**主要函数**：
+
+- `executeAction(action)` - 执行动作
+- `highlightElement(element)` - 高亮元素
+- `removeHighlight()` - 移除高亮
+- `sleep(ms)` - 等待指定时间
+- `waitForElement(selector, timeout)` - 等待元素出现
 
 [查看源码](file:///workspace/src/contentScript/index.js)
 
@@ -240,15 +269,35 @@ graph TD
 **主要功能**：
 
 - 开始/停止录制
+- 打开侧边栏
+- 打开设置页面
 - 显示脚本列表
-- 执行、导出、删除脚本
+- 执行、编辑、导出、删除脚本
 - 创建新脚本
+- 导入脚本
+- 查看脚本详情
 
 **核心组件**：
 
 - 录制控制区
 - 脚本列表
 - 新建脚本弹窗
+- 编辑脚本弹窗
+
+**主要函数**：
+
+- `startRecording()` - 开始录制
+- `stopRecording()` - 停止录制
+- `openSidePanel()` - 打开侧边栏
+- `openSettings()` - 打开设置页面
+- `executeScript(scriptId)` - 执行脚本
+- `deleteScript(scriptId)` - 删除脚本
+- `createNewScript()` - 创建新脚本
+- `exportScript(scriptId)` - 导出脚本
+- `importScript()` - 导入脚本
+- `editScript(scriptId)` - 编辑脚本
+- `saveEditedScript()` - 保存编辑后的脚本
+- `viewScriptDetails(scriptId)` - 查看脚本详情
 
 [查看源码](file:///workspace/src/render/views/popup/Popup.vue)
 
@@ -259,7 +308,10 @@ graph TD
 **主要 store**：
 
 - `scripts.js` - 管理脚本
+  - 核心方法：loadScripts, createNewScript, saveScript, deleteScript, exportScript, importScript, addAction, updateAction, removeAction, moveAction
+
 - `recording.js` - 管理录制状态
+
 - `settings.js` - 管理设置
 
 [查看源码](file:///workspace/src/render/store/)
@@ -271,7 +323,11 @@ graph TD
 **主要类型**：
 
 - `messages.js` - 消息类型定义
+
 - `actions.js` - 动作类型定义
+  - 动作类型：NAVIGATE, CLICK, INPUT, WAIT, SCROLL, SELECT, EXTRACT, KEYPRESS, HOVER, NETWORK, IF, GOTO
+  - 执行状态：PENDING, RUNNING, SUCCESS, FAILED, PAUSED
+  - 录制状态：IDLE, RECORDING, PAUSED
 
 [查看源码](file:///workspace/src/render/types/)
 
@@ -314,7 +370,43 @@ constructor() {
 | `getActions()`   | 获取录制的动作 | 无   | 动作数组                                    |
 | `clearActions()` | 清空录制的动作 | 无   | 无                                          |
 
-### 4.2 后台消息处理函数
+### 4.2 ExecutionEngine 类
+
+**位置**：[background/executor.js](file:///workspace/src/background/executor.js)
+
+**功能**：负责执行录制的脚本，模拟用户操作。
+
+**构造函数**：
+
+```javascript
+constructor() {
+  this.status = EXECUTION_STATUS.IDLE
+  this.currentScript = null
+  this.currentActionIndex = 0
+  this.variables = {}
+  this.log = null
+  this.isPaused = false
+  this.isStopped = false
+  this.tabId = null
+}
+```
+
+**主要方法**：
+
+| 方法名                  | 描述           | 参数                            | 返回值                    |
+| ----------------------- | -------------- | ------------------------------- | ------------------------- |
+| `execute(scriptId, options)` | 执行脚本       | `scriptId, options`             | `Promise<Object>`         |
+| `executeAction(action, options)` | 执行单个动作   | `action, options`               | `Promise<Object>`         |
+| `performAction(type, params, tabId)` | 执行具体动作 | `type, params, tabId`           | `Promise<any>`            |
+| `executeInContentScript(tabId, action)` | 在 Content Script 中执行动作 | `tabId, action` | `Promise<any>` |
+| `evaluateCondition(params, tabId)` | 评估条件 | `params, tabId` | `Promise<boolean>` |
+| `waitForTabLoad(tabId)` | 等待标签页加载完成 | `tabId` | `Promise<void>` |
+| `pause()`               | 暂停执行       | 无                              | 无                        |
+| `resume()`              | 恢复执行       | 无                              | 无                        |
+| `stop()`                | 停止执行       | 无                              | 无                        |
+| `getStatus()`           | 获取执行状态   | 无                              | 执行状态对象              |
+
+### 4.3 后台消息处理函数
 
 **位置**：[background/index.js](file:///workspace/src/background/index.js)
 
@@ -329,7 +421,7 @@ constructor() {
 | `handleToggleOptions()`            | 处理切换设置页面                | `sendResponse`                  | 无        |
 | `handlePublishArticle()`           | 处理发布文章                    | `request, sendResponse`         | 无        |
 
-### 4.3 内容脚本消息处理函数
+### 4.4 内容脚本消息处理函数
 
 **位置**：[contentScript/index.js](file:///workspace/src/contentScript/index.js)
 
@@ -345,7 +437,7 @@ constructor() {
 | `sleep()`            | 等待指定时间 | `ms`                | `Promise<void>`    |
 | `waitForElement()`   | 等待元素出现 | `selector, timeout` | `Promise<Element>` |
 
-### 4.4 前端组件函数
+### 4.5 前端组件函数
 
 **位置**：[render/views/popup/Popup.vue](file:///workspace/src/render/views/popup/Popup.vue)
 
@@ -353,14 +445,20 @@ constructor() {
 
 **主要函数**：
 
-| 函数名              | 描述       | 参数       | 返回值          |
-| ------------------- | ---------- | ---------- | --------------- |
-| `startRecording()`  | 开始录制   | 无         | `Promise<void>` |
-| `stopRecording()`   | 停止录制   | 无         | `Promise<void>` |
-| `executeScript()`   | 执行脚本   | `scriptId` | `Promise<void>` |
-| `deleteScript()`    | 删除脚本   | `scriptId` | `Promise<void>` |
-| `createNewScript()` | 创建新脚本 | 无         | `Promise<void>` |
-| `exportScript()`    | 导出脚本   | `scriptId` | `Promise<void>` |
+| 函数名              | 描述           | 参数       | 返回值          |
+| ------------------- | -------------- | ---------- | --------------- |
+| `startRecording()`  | 开始录制       | 无         | `Promise<void>` |
+| `stopRecording()`   | 停止录制       | 无         | `Promise<void>` |
+| `openSidePanel()`   | 打开侧边栏     | 无         | `Promise<void>` |
+| `openSettings()`    | 打开设置页面   | 无         | `Promise<void>` |
+| `executeScript()`   | 执行脚本       | `scriptId` | `Promise<void>` |
+| `deleteScript()`    | 删除脚本       | `scriptId` | `Promise<void>` |
+| `createNewScript()` | 创建新脚本     | 无         | `Promise<void>` |
+| `exportScript()`    | 导出脚本       | `scriptId` | `Promise<void>` |
+| `importScript()`    | 导入脚本       | 无         | `Promise<void>` |
+| `editScript()`      | 编辑脚本       | `scriptId` | 无              |
+| `saveEditedScript()` | 保存编辑后的脚本 | 无         | `Promise<void>` |
+| `viewScriptDetails()` | 查看脚本详情 | `scriptId` | 无              |
 
 ## 5. 技术栈与依赖
 
@@ -510,6 +608,14 @@ OperationRecorder 扩展需要以下权限：
 7. Background 将结果返回给 Popup
 8. Popup 显示执行结果
 
+### 8.3 脚本管理流程
+
+1. **创建脚本**：用户点击“新建”按钮，输入脚本名称，创建空脚本
+2. **编辑脚本**：用户选择脚本，点击“编辑”按钮，修改脚本名称和描述
+3. **导入脚本**：用户点击“导入”按钮，选择 JSON 文件，导入脚本
+4. **导出脚本**：用户选择脚本，点击“导出”按钮，下载脚本为 JSON 文件
+5. **删除脚本**：用户选择脚本，点击“删除”按钮，删除脚本
+
 ## 9. 代码质量保障
 
 ### 9.1 代码规范
@@ -573,10 +679,11 @@ OperationRecorder 是一个功能强大的 Chrome 扩展，用于录制和回放
 **核心优势**：
 
 - 易于使用的录制界面
-- 强大的脚本管理功能
-- 支持多种操作类型的录制
+- 强大的脚本管理功能（创建、编辑、执行、导出、导入）
+- 支持多种操作类型的录制（点击、输入、导航、滚动等）
 - 跨浏览器兼容
 - 模块化的代码结构
+- 支持脚本的定时执行
 
 **应用场景**：
 
