@@ -5,13 +5,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import {
-  ACTION_TYPES,
-  createScript,
-  createAction,
-  generateId,
-  EXECUTION_STATUS,
-} from '../types/actions.js'
+import { createScript, createAction, generateId } from '../types/actions.js'
 
 // 模拟存储 API（实际项目中会从 background 获取）
 const mockStorage = {

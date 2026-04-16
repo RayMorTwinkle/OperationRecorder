@@ -22,14 +22,11 @@ import { MESSAGE_TYPES as ACTION_MESSAGE_TYPES } from '../../types/actions.js'
 const message = useMessage()
 const scriptsStore = useScriptsStore()
 
-const activeTab = ref('scripts')
 const showNewScriptModal = ref(false)
 const showEditScriptModal = ref(false)
-const showImportScriptModal = ref(false)
 const newScriptName = ref('')
 const editingScript = ref(null)
 const isRecording = ref(false)
-const importFileContent = ref('')
 
 onMounted(() => {
   scriptsStore.loadScripts()

@@ -9,7 +9,6 @@ import {
   DownloadOutline,
   CloudUploadOutline,
   TrashOutline,
-  InformationCircleOutline,
   RecordingOutline,
 } from '@vicons/ionicons5'
 import { useSettingsStore } from '../../store/settings.js'
