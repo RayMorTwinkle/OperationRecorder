@@ -17,6 +17,7 @@ import {
 } from '@vicons/ionicons5'
 import { useScriptsStore } from '../../store/scripts.js'
 import { MESSAGE_TYPES } from '../../types/messages.js'
+import { MESSAGE_TYPES as ACTION_MESSAGE_TYPES } from '../../types/actions.js'
 
 const message = useMessage()
 const scriptsStore = useScriptsStore()
@@ -45,7 +46,7 @@ async function startRecording() {
     }
 
     // 发送消息到 content script 开始录制
-    await chrome.tabs.sendMessage(tab.id, { type: 'START_RECORDING' })
+    await chrome.tabs.sendMessage(tab.id, { type: ACTION_MESSAGE_TYPES.START_RECORDING })
     isRecording.value = true
     message.success('开始录制')
   } catch (error) {
@@ -59,7 +60,7 @@ async function stopRecording() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     if (!tab) return
 
-    const response = await chrome.tabs.sendMessage(tab.id, { type: 'STOP_RECORDING' })
+    const response = await chrome.tabs.sendMessage(tab.id, { type: ACTION_MESSAGE_TYPES.STOP_RECORDING })
     isRecording.value = false
 
     if (response.success) {
