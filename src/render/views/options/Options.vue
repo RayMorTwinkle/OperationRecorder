@@ -13,6 +13,7 @@ import {
   RecordingOutline,
 } from '@vicons/ionicons5'
 import { useSettingsStore } from '../../store/settings.js'
+import { MESSAGE_TYPES } from '../../types/messages.js'
 
 const message = useMessage()
 const settingsStore = useSettingsStore()
@@ -50,7 +51,7 @@ async function resetSettings() {
 // 导出所有数据
 async function exportAllData() {
   try {
-    const data = await chrome.runtime.sendMessage({ type: 'EXPORT_ALL_DATA' })
+    const data = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.EXPORT_ALL_DATA })
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
 
@@ -80,7 +81,7 @@ async function importData() {
       const data = JSON.parse(text)
 
       await chrome.runtime.sendMessage({
-        type: 'IMPORT_ALL_DATA',
+        type: MESSAGE_TYPES.IMPORT_ALL_DATA,
         data,
       })
 
@@ -97,7 +98,7 @@ async function importData() {
 // 清空所有数据
 async function clearAllData() {
   try {
-    await chrome.runtime.sendMessage({ type: 'CLEAR_ALL_DATA' })
+    await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.CLEAR_ALL_DATA })
     message.success('所有数据已清空')
     settingsStore.loadSettings()
   } catch (error) {

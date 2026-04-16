@@ -21,6 +21,11 @@ export const MESSAGE_TYPES = {
 
   // ContentScript 状态
   CONTENT_SCRIPT_READY: 'contentScriptReady',
+
+  // 数据管理
+  EXPORT_ALL_DATA: 'EXPORT_ALL_DATA',
+  IMPORT_ALL_DATA: 'IMPORT_ALL_DATA',
+  CLEAR_ALL_DATA: 'CLEAR_ALL_DATA',
 }
 
 // PostMessage 消息类型

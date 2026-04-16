@@ -88,19 +88,19 @@ async function handleOperationRecorderMessage(request, sender, sendResponse) {
         return true
       }
 
-      case 'EXPORT_ALL_DATA': {
+      case MESSAGING_MESSAGE_TYPES.EXPORT_ALL_DATA: {
         const exportData = await storage.exportAll()
         sendResponse(createResponse(true, exportData))
         return true
       }
 
-      case 'IMPORT_ALL_DATA': {
+      case MESSAGING_MESSAGE_TYPES.IMPORT_ALL_DATA: {
         await storage.importAll(request.data)
         sendResponse(createResponse(true, null, '数据已导入'))
         return true
       }
 
-      case 'CLEAR_ALL_DATA': {
+      case MESSAGING_MESSAGE_TYPES.CLEAR_ALL_DATA: {
         await storage.clear()
         sendResponse(createResponse(true, null, '数据已清空'))
         return true

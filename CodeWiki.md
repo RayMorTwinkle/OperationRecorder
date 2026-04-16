@@ -393,18 +393,18 @@ constructor() {
 
 **主要方法**：
 
-| 方法名                  | 描述           | 参数                            | 返回值                    |
-| ----------------------- | -------------- | ------------------------------- | ------------------------- |
-| `execute(scriptId, options)` | 执行脚本       | `scriptId, options`             | `Promise<Object>`         |
-| `executeAction(action, options)` | 执行单个动作   | `action, options`               | `Promise<Object>`         |
-| `performAction(type, params, tabId)` | 执行具体动作 | `type, params, tabId`           | `Promise<any>`            |
-| `executeInContentScript(tabId, action)` | 在 Content Script 中执行动作 | `tabId, action` | `Promise<any>` |
-| `evaluateCondition(params, tabId)` | 评估条件 | `params, tabId` | `Promise<boolean>` |
-| `waitForTabLoad(tabId)` | 等待标签页加载完成 | `tabId` | `Promise<void>` |
-| `pause()`               | 暂停执行       | 无                              | 无                        |
-| `resume()`              | 恢复执行       | 无                              | 无                        |
-| `stop()`                | 停止执行       | 无                              | 无                        |
-| `getStatus()`           | 获取执行状态   | 无                              | 执行状态对象              |
+| 方法名                                  | 描述                         | 参数                  | 返回值             |
+| --------------------------------------- | ---------------------------- | --------------------- | ------------------ |
+| `execute(scriptId, options)`            | 执行脚本                     | `scriptId, options`   | `Promise<Object>`  |
+| `executeAction(action, options)`        | 执行单个动作                 | `action, options`     | `Promise<Object>`  |
+| `performAction(type, params, tabId)`    | 执行具体动作                 | `type, params, tabId` | `Promise<any>`     |
+| `executeInContentScript(tabId, action)` | 在 Content Script 中执行动作 | `tabId, action`       | `Promise<any>`     |
+| `evaluateCondition(params, tabId)`      | 评估条件                     | `params, tabId`       | `Promise<boolean>` |
+| `waitForTabLoad(tabId)`                 | 等待标签页加载完成           | `tabId`               | `Promise<void>`    |
+| `pause()`                               | 暂停执行                     | 无                    | 无                 |
+| `resume()`                              | 恢复执行                     | 无                    | 无                 |
+| `stop()`                                | 停止执行                     | 无                    | 无                 |
+| `getStatus()`                           | 获取执行状态                 | 无                    | 执行状态对象       |
 
 ### 4.3 后台消息处理函数
 
@@ -445,20 +445,20 @@ constructor() {
 
 **主要函数**：
 
-| 函数名              | 描述           | 参数       | 返回值          |
-| ------------------- | -------------- | ---------- | --------------- |
-| `startRecording()`  | 开始录制       | 无         | `Promise<void>` |
-| `stopRecording()`   | 停止录制       | 无         | `Promise<void>` |
-| `openSidePanel()`   | 打开侧边栏     | 无         | `Promise<void>` |
-| `openSettings()`    | 打开设置页面   | 无         | `Promise<void>` |
-| `executeScript()`   | 执行脚本       | `scriptId` | `Promise<void>` |
-| `deleteScript()`    | 删除脚本       | `scriptId` | `Promise<void>` |
-| `createNewScript()` | 创建新脚本     | 无         | `Promise<void>` |
-| `exportScript()`    | 导出脚本       | `scriptId` | `Promise<void>` |
-| `importScript()`    | 导入脚本       | 无         | `Promise<void>` |
-| `editScript()`      | 编辑脚本       | `scriptId` | 无              |
-| `saveEditedScript()` | 保存编辑后的脚本 | 无         | `Promise<void>` |
-| `viewScriptDetails()` | 查看脚本详情 | `scriptId` | 无              |
+| 函数名                | 描述             | 参数       | 返回值          |
+| --------------------- | ---------------- | ---------- | --------------- |
+| `startRecording()`    | 开始录制         | 无         | `Promise<void>` |
+| `stopRecording()`     | 停止录制         | 无         | `Promise<void>` |
+| `openSidePanel()`     | 打开侧边栏       | 无         | `Promise<void>` |
+| `openSettings()`      | 打开设置页面     | 无         | `Promise<void>` |
+| `executeScript()`     | 执行脚本         | `scriptId` | `Promise<void>` |
+| `deleteScript()`      | 删除脚本         | `scriptId` | `Promise<void>` |
+| `createNewScript()`   | 创建新脚本       | 无         | `Promise<void>` |
+| `exportScript()`      | 导出脚本         | `scriptId` | `Promise<void>` |
+| `importScript()`      | 导入脚本         | 无         | `Promise<void>` |
+| `editScript()`        | 编辑脚本         | `scriptId` | 无              |
+| `saveEditedScript()`  | 保存编辑后的脚本 | 无         | `Promise<void>` |
+| `viewScriptDetails()` | 查看脚本详情     | `scriptId` | 无              |
 
 ## 5. 技术栈与依赖
 
