@@ -6,19 +6,16 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { createScript, createAction, generateId } from '../types/actions.js'
+import { MESSAGE_TYPES } from '../types/messages.js'
 
-// 模拟存储 API（实际项目中会从 background 获取）
-const mockStorage = {
-  scripts: {},
-  async getScripts() {
-    return this.scripts
-  },
-  async saveScript(script) {
-    this.scripts[script.id] = script
-  },
-  async deleteScript(scriptId) {
-    delete this.scripts[scriptId]
-  },
+// 发送消息到 background
+async function sendMessageToBackground(type, data = {}) {
+  try {
+    return await chrome.runtime.sendMessage({ type, ...data })
+  } catch (error) {
+    console.error('发送消息到 background 失败:', error)
+    throw error
+  }
 }
 
 export const useScriptsStore = defineStore('scripts', () => {
@@ -46,9 +43,12 @@ export const useScriptsStore = defineStore('scripts', () => {
     isLoading.value = true
     error.value = null
     try {
-      // 实际项目中通过 message 发送到 background 获取
-      const data = await mockStorage.getScripts()
-      scripts.value = data
+      const response = await sendMessageToBackground(MESSAGE_TYPES.GET_SCRIPTS)
+      if (response.success) {
+        scripts.value = response.data
+      } else {
+        throw new Error(response.message)
+      }
     } catch (err) {
       error.value = err.message
       console.error('加载脚本失败:', err)
@@ -66,8 +66,12 @@ export const useScriptsStore = defineStore('scripts', () => {
   async function saveScript(script) {
     try {
       script.updatedAt = Date.now()
-      await mockStorage.saveScript(script)
-      scripts.value[script.id] = script
+      const response = await sendMessageToBackground(MESSAGE_TYPES.SAVE_SCRIPT, { script })
+      if (response.success) {
+        scripts.value[script.id] = script
+      } else {
+        throw new Error(response.message)
+      }
     } catch (err) {
       error.value = err.message
       console.error('保存脚本失败:', err)
@@ -77,10 +81,14 @@ export const useScriptsStore = defineStore('scripts', () => {
 
   async function deleteScript(scriptId) {
     try {
-      await mockStorage.deleteScript(scriptId)
-      delete scripts.value[scriptId]
-      if (currentScriptId.value === scriptId) {
-        currentScriptId.value = null
+      const response = await sendMessageToBackground(MESSAGE_TYPES.DELETE_SCRIPT, { scriptId })
+      if (response.success) {
+        delete scripts.value[scriptId]
+        if (currentScriptId.value === scriptId) {
+          currentScriptId.value = null
+        }
+      } else {
+        throw new Error(response.message)
       }
     } catch (err) {
       error.value = err.message
@@ -272,6 +280,24 @@ export const useScriptsStore = defineStore('scripts', () => {
     return script
   }
 
+  // 复制脚本
+  async function cloneScript(scriptId) {
+    const script = scripts.value[scriptId]
+    if (!script) return null
+
+    const clonedScript = {
+      ...script,
+      id: generateId(),
+      name: `${script.name} (副本)`,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      lastExecutionTime: null,
+    }
+
+    await saveScript(clonedScript)
+    return clonedScript
+  }
+
   return {
     // State
     scripts,
@@ -310,5 +336,8 @@ export const useScriptsStore = defineStore('scripts', () => {
     // 导入/导出
     exportScript,
     importScript,
+
+    // 复制脚本
+    cloneScript,
   }
 })

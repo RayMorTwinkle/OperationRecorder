@@ -14,44 +14,90 @@ import {
   OpenOutline,
   CreateOutline,
   EyeOutline,
+  CopyOutline,
+  PauseOutline,
+  PlayCircleOutline,
+  CodeOutline,
 } from '@vicons/ionicons5'
 import { useScriptsStore } from '../../store/scripts.js'
 import { MESSAGE_TYPES } from '../../types/messages.js'
-import { MESSAGE_TYPES as ACTION_MESSAGE_TYPES } from '../../types/actions.js'
+import { MESSAGE_TYPES as ACTION_MESSAGE_TYPES, ACTION_CONFIG } from '../../types/actions.js'
 
 const message = useMessage()
 const scriptsStore = useScriptsStore()
 
 const showNewScriptModal = ref(false)
 const showEditScriptModal = ref(false)
+const showActionEditorModal = ref(false)
 const newScriptName = ref('')
 const editingScript = ref(null)
 const isRecording = ref(false)
+const isPausedRecording = ref(false)
+const editingAction = ref(null)
+const isEditingExistingAction = ref(false)
+const actionIndexToEdit = ref(-1)
+const newActionType = ref(ACTION_CONFIG.CLICK?.type || 'click')
+const newActionParams = ref({})
+const currentEditingScriptId = ref(null)
+
+const availableActions = Object.entries(ACTION_CONFIG).map(([type, config]) => ({
+  type,
+  label: config.label,
+  description: config.description,
+}))
 
 onMounted(() => {
   scriptsStore.loadScripts()
 })
 
-// 开始录制
+function formatTime(timestamp) {
+  if (!timestamp) return '从未'
+  return new Date(timestamp).toLocaleString()
+}
+
 async function startRecording() {
   try {
-    // 获取当前活动标签页
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     if (!tab) {
       message.error('无法获取当前标签页')
       return
     }
 
-    // 发送消息到 content script 开始录制
     await chrome.tabs.sendMessage(tab.id, { type: ACTION_MESSAGE_TYPES.START_RECORDING })
     isRecording.value = true
+    isPausedRecording.value = false
     message.success('开始录制')
   } catch (error) {
     message.error('开始录制失败: ' + error.message)
   }
 }
 
-// 停止录制
+async function pauseRecording() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (!tab) return
+
+    await chrome.tabs.sendMessage(tab.id, { type: ACTION_MESSAGE_TYPES.PAUSE_EXECUTION })
+    isPausedRecording.value = true
+    message.success('录制已暂停')
+  } catch (error) {
+    message.error('暂停录制失败: ' + error.message)
+  }
+}
+
+async function resumeRecording() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (!tab) return
+
+    await chrome.tabs.sendMessage(tab.id, { type: ACTION_MESSAGE_TYPES.RESUME_EXECUTION })
+    isPausedRecording.value = false
+    message.success('录制已恢复')
+  } catch (error) {
+    message.error('恢复录制失败: ' + error.message)
+  }
+}
+
 async function stopRecording() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
@@ -61,13 +107,12 @@ async function stopRecording() {
       type: ACTION_MESSAGE_TYPES.STOP_RECORDING,
     })
     isRecording.value = false
+    isPausedRecording.value = false
 
     if (response.success) {
-      // 创建新脚本
       const scriptName = `录制脚本 ${new Date().toLocaleString()}`
       const script = await scriptsStore.createNewScript(scriptName, '通过录制生成')
 
-      // 将录制的动作添加到脚本
       response.data.actions.forEach((action) => {
         scriptsStore.addAction(script.id, action.type, action.params)
       })
@@ -79,7 +124,6 @@ async function stopRecording() {
   }
 }
 
-// 执行脚本
 async function executeScript(scriptId) {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
@@ -96,7 +140,6 @@ async function executeScript(scriptId) {
 
     message.loading('正在执行脚本...', { duration: 0 })
 
-    // 发送消息到 background 执行脚本
     const response = await chrome.runtime.sendMessage({
       type: ACTION_MESSAGE_TYPES.EXECUTE_SCRIPT,
       scriptId,
@@ -113,7 +156,6 @@ async function executeScript(scriptId) {
   }
 }
 
-// 删除脚本
 async function deleteScript(scriptId) {
   try {
     await scriptsStore.deleteScript(scriptId)
@@ -123,7 +165,15 @@ async function deleteScript(scriptId) {
   }
 }
 
-// 创建新脚本
+async function cloneScript(scriptId) {
+  try {
+    const clonedScript = await scriptsStore.cloneScript(scriptId)
+    message.success(`脚本已复制为 "${clonedScript.name}"`)
+  } catch (error) {
+    message.error('复制脚本失败: ' + error.message)
+  }
+}
+
 async function createNewScript() {
   if (!newScriptName.value.trim()) {
     message.warning('请输入脚本名称')
@@ -140,7 +190,6 @@ async function createNewScript() {
   }
 }
 
-// 导出脚本
 async function exportScript(scriptId) {
   try {
     const script = await scriptsStore.exportScript(scriptId)
@@ -158,64 +207,6 @@ async function exportScript(scriptId) {
   }
 }
 
-// 格式化时间
-function formatTime(timestamp) {
-  if (!timestamp) return '从未'
-  return new Date(timestamp).toLocaleString()
-}
-
-// 打开侧边栏
-async function openSidePanel() {
-  try {
-    const response = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.OPEN_SIDEPANEL })
-    if (response.success) {
-      message.success('侧边栏已打开')
-    }
-  } catch (error) {
-    message.error('打开侧边栏失败: ' + error.message)
-  }
-}
-
-// 打开设置页面
-async function openSettings() {
-  try {
-    const response = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.TOGGLE_OPTIONS })
-    if (response.success) {
-      message.success(response.message)
-    }
-  } catch (error) {
-    message.error('打开设置页面失败: ' + error.message)
-  }
-}
-
-// 编辑脚本
-function editScript(scriptId) {
-  const script = scriptsStore.getScriptById(scriptId)
-  if (!script) {
-    message.error('脚本不存在')
-    return
-  }
-  editingScript.value = { ...script }
-  showEditScriptModal.value = true
-}
-
-// 保存编辑后的脚本
-async function saveEditedScript() {
-  if (!editingScript.value.name.trim()) {
-    message.warning('请输入脚本名称')
-    return
-  }
-  try {
-    await scriptsStore.saveScript(editingScript.value)
-    showEditScriptModal.value = false
-    editingScript.value = null
-    message.success('脚本已更新')
-  } catch (error) {
-    message.error('更新脚本失败: ' + error.message)
-  }
-}
-
-// 导入脚本
 async function importScript() {
   const input = document.createElement('input')
   input.type = 'file'
@@ -229,14 +220,12 @@ async function importScript() {
       const text = await file.text()
       const scriptData = JSON.parse(text)
 
-      // 创建新脚本
       const scriptName = scriptData.name || file.name.replace('.json', '')
       const script = await scriptsStore.createNewScript(
         scriptName,
         scriptData.description || '导入的脚本',
       )
 
-      // 添加动作
       if (scriptData.actions && Array.isArray(scriptData.actions)) {
         scriptData.actions.forEach((action) => {
           scriptsStore.addAction(script.id, action.type, action.params)
@@ -252,15 +241,115 @@ async function importScript() {
   input.click()
 }
 
-// 查看脚本详情
+function editScript(scriptId) {
+  const script = scriptsStore.getScriptById(scriptId)
+  if (!script) {
+    message.error('脚本不存在')
+    return
+  }
+  editingScript.value = { ...script }
+  showEditScriptModal.value = true
+}
+
+async function saveEditedScript() {
+  if (!editingScript.value.name.trim()) {
+    message.warning('请输入脚本名称')
+    return
+  }
+  try {
+    await scriptsStore.saveScript(editingScript.value)
+    showEditScriptModal.value = false
+    editingScript.value = null
+    message.success('脚本已更新')
+  } catch (error) {
+    message.error('更新脚本失败: ' + error.message)
+  }
+}
+
+function openActionEditor(scriptId, actionIndex = -1) {
+  const script = scriptsStore.getScriptById(scriptId)
+  if (!script) {
+    message.error('脚本不存在')
+    return
+  }
+
+  currentEditingScriptId.value = scriptId
+
+  if (actionIndex >= 0 && script.actions[actionIndex]) {
+    editingAction.value = { ...script.actions[actionIndex] }
+    isEditingExistingAction.value = true
+    actionIndexToEdit.value = actionIndex
+    newActionType.value = editingAction.value.type
+    newActionParams.value = { ...editingAction.value.params }
+  } else {
+    editingAction.value = null
+    isEditingExistingAction.value = false
+    actionIndexToEdit.value = -1
+    newActionType.value = availableActions[0]?.type || 'click'
+    newActionParams.value = {}
+  }
+
+  showActionEditorModal.value = true
+}
+
+async function saveAction() {
+  if (!currentEditingScriptId.value) return
+
+  try {
+    if (isEditingExistingAction.value && actionIndexToEdit.value >= 0) {
+      const script = scriptsStore.getScriptById(currentEditingScriptId.value)
+      const action = script?.actions[actionIndexToEdit.value]
+      if (action) {
+        scriptsStore.updateAction(currentEditingScriptId.value, action.id, {
+          type: newActionType.value,
+          params: newActionParams.value,
+        })
+      }
+    } else {
+      scriptsStore.addAction(
+        currentEditingScriptId.value,
+        newActionType.value,
+        newActionParams.value,
+      )
+    }
+
+    await scriptsStore.saveScript(scriptsStore.getScriptById(currentEditingScriptId.value))
+    showActionEditorModal.value = false
+    message.success('动作已保存')
+  } catch (error) {
+    message.error('保存动作失败: ' + error.message)
+  }
+}
+
 function viewScriptDetails(scriptId) {
   const script = scriptsStore.getScriptById(scriptId)
   if (!script) {
     message.error('脚本不存在')
     return
   }
-  // 这里可以打开一个详情弹窗或者跳转到侧边栏查看
   message.info(`脚本详情: ${script.name}，包含 ${script.actions.length} 个动作`)
+}
+
+async function openSidePanel() {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.OPEN_SIDEPANEL })
+    if (response.success) {
+      message.success('侧边栏已打开')
+    }
+  } catch (error) {
+    message.error('打开侧边栏失败: ' + error.message)
+  }
+}
+
+async function openSettings() {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.TOGGLE_OPTIONS })
+    if (response.success) {
+      message.success(response.message)
+    }
+  } catch (error) {
+    message.error('打开设置页面失败: ' + error.message)
+  }
 }
 </script>
 
@@ -293,24 +382,46 @@ function viewScriptDetails(scriptId) {
       <div class="flex items-center justify-between">
         <div>
           <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ isRecording ? '正在录制...' : '准备录制' }}
+            {{ isPausedRecording ? '录制已暂停' : isRecording ? '正在录制...' : '准备录制' }}
           </div>
           <div class="text-xs text-gray-500">
-            {{ isRecording ? '点击页面元素进行录制' : '点击下方按钮开始录制' }}
+            {{
+              isPausedRecording
+                ? '点击恢复继续录制'
+                : isRecording
+                  ? '点击页面元素进行录制'
+                  : '点击下方按钮开始录制'
+            }}
           </div>
         </div>
-        <n-button v-if="!isRecording" type="error" size="large" round @click="startRecording">
-          <template #icon>
-            <n-icon :component="RecordingOutline" />
+        <div class="flex items-center gap-2">
+          <template v-if="isRecording">
+            <n-button v-if="!isPausedRecording" size="large" round @click="pauseRecording">
+              <template #icon>
+                <n-icon :component="PauseOutline" />
+              </template>
+              暂停
+            </n-button>
+            <n-button v-else size="large" round type="primary" @click="resumeRecording">
+              <template #icon>
+                <n-icon :component="PlayCircleOutline" />
+              </template>
+              恢复
+            </n-button>
+            <n-button type="error" size="large" round ghost @click="stopRecording">
+              <template #icon>
+                <n-icon :component="StopOutline" />
+              </template>
+              停止
+            </n-button>
           </template>
-          录制
-        </n-button>
-        <n-button v-else type="error" size="large" round ghost @click="stopRecording">
-          <template #icon>
-            <n-icon :component="StopOutline" />
-          </template>
-          停止
-        </n-button>
+          <n-button v-else type="error" size="large" round @click="startRecording">
+            <template #icon>
+              <n-icon :component="RecordingOutline" />
+            </template>
+            录制
+          </n-button>
+        </div>
       </div>
     </n-card>
 
@@ -368,6 +479,16 @@ function viewScriptDetails(scriptId) {
               <n-button text size="small" @click="executeScript(script.id)" title="执行">
                 <template #icon>
                   <n-icon :component="PlayOutline" />
+                </template>
+              </n-button>
+              <n-button text size="small" @click="openActionEditor(script.id)" title="编辑动作">
+                <template #icon>
+                  <n-icon :component="CodeOutline" />
+                </template>
+              </n-button>
+              <n-button text size="small" @click="cloneScript(script.id)" title="复制">
+                <template #icon>
+                  <n-icon :component="CopyOutline" />
                 </template>
               </n-button>
               <n-button text size="small" @click="editScript(script.id)" title="编辑">
@@ -431,6 +552,46 @@ function viewScriptDetails(scriptId) {
         <div class="flex justify-end gap-2">
           <n-button @click="showEditScriptModal = false">取消</n-button>
           <n-button type="primary" @click="saveEditedScript">保存</n-button>
+        </div>
+      </template>
+    </n-modal>
+
+    <!-- 动作编辑器弹窗 -->
+    <n-modal
+      v-model:show="showActionEditorModal"
+      :title="isEditingExistingAction ? '编辑动作' : '添加动作'"
+      preset="card"
+      class="w-400px"
+    >
+      <div class="space-y-4">
+        <n-form-item label="动作类型">
+          <n-select
+            v-model:value="newActionType"
+            :options="availableActions"
+            label-field="label"
+            value-field="type"
+          />
+        </n-form-item>
+
+        <n-form-item v-if="newActionType" label="动作配置">
+          <n-card size="small" class="bg-gray-50 dark:bg-gray-800">
+            <div class="text-xs text-gray-500 mb-2">
+              {{ ACTION_CONFIG[newActionType]?.description }}
+            </div>
+            <n-input
+              v-model:value="newActionParams"
+              type="textarea"
+              placeholder='{"key": "value"}'
+              :rows="4"
+            />
+            <div class="text-xs text-gray-400 mt-1">输入 JSON 格式的参数</div>
+          </n-card>
+        </n-form-item>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <n-button @click="showActionEditorModal = false">取消</n-button>
+          <n-button type="primary" @click="saveAction">保存</n-button>
         </div>
       </template>
     </n-modal>

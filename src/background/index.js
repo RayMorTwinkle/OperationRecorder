@@ -41,7 +41,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // 处理 OperationRecorder 相关消息
   handleOperationRecorderMessage(request, sender, sendResponse)
 
-  // 处理原有的消息
+  // 处理脚本管理消息
   try {
     switch (request.type) {
       case MESSAGING_MESSAGE_TYPES.OPEN_SIDEPANEL:
@@ -54,6 +54,42 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       case MESSAGING_MESSAGE_TYPES.PUBLISH_ARTICLE:
         handlePublishArticle(request, sendResponse)
+        return true
+
+      case MESSAGING_MESSAGE_TYPES.GET_SCRIPTS:
+        handleGetScripts(sendResponse)
+        return true
+
+      case MESSAGING_MESSAGE_TYPES.SAVE_SCRIPT:
+        handleSaveScript(request, sendResponse)
+        return true
+
+      case MESSAGING_MESSAGE_TYPES.DELETE_SCRIPT:
+        handleDeleteScript(request, sendResponse)
+        return true
+
+      case MESSAGING_MESSAGE_TYPES.GET_SCRIPT:
+        handleGetScript(request, sendResponse)
+        return true
+
+      case MESSAGING_MESSAGE_TYPES.GET_LOGS:
+        handleGetLogs(request, sendResponse)
+        return true
+
+      case MESSAGING_MESSAGE_TYPES.ADD_LOG:
+        handleAddLog(request, sendResponse)
+        return true
+
+      case MESSAGING_MESSAGE_TYPES.CLEAR_LOGS:
+        handleClearLogs(sendResponse)
+        return true
+
+      case MESSAGING_MESSAGE_TYPES.GET_SETTINGS:
+        handleGetSettings(sendResponse)
+        return true
+
+      case MESSAGING_MESSAGE_TYPES.SAVE_SETTINGS:
+        handleSaveSettings(request, sendResponse)
         return true
 
       default:
@@ -225,3 +261,86 @@ chrome.runtime.onInstalled.addListener((details) => {
   })
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
 })
+
+// ==================== 脚本管理消息处理 ====================
+
+async function handleGetScripts(sendResponse) {
+  try {
+    const scripts = await storage.getScripts()
+    sendResponse(createResponse(true, scripts))
+  } catch (error) {
+    handleError(error, '获取脚本列表', sendResponse)
+  }
+}
+
+async function handleSaveScript(request, sendResponse) {
+  try {
+    await storage.saveScript(request.script)
+    sendResponse(createResponse(true, null, '脚本已保存'))
+  } catch (error) {
+    handleError(error, '保存脚本', sendResponse)
+  }
+}
+
+async function handleDeleteScript(request, sendResponse) {
+  try {
+    await storage.deleteScript(request.scriptId)
+    sendResponse(createResponse(true, null, '脚本已删除'))
+  } catch (error) {
+    handleError(error, '删除脚本', sendResponse)
+  }
+}
+
+async function handleGetScript(request, sendResponse) {
+  try {
+    const script = await storage.getScript(request.scriptId)
+    sendResponse(createResponse(true, script))
+  } catch (error) {
+    handleError(error, '获取脚本', sendResponse)
+  }
+}
+
+async function handleGetLogs(request, sendResponse) {
+  try {
+    const logs = await storage.getLogs(request.scriptId, request.limit)
+    sendResponse(createResponse(true, logs))
+  } catch (error) {
+    handleError(error, '获取日志', sendResponse)
+  }
+}
+
+async function handleAddLog(request, sendResponse) {
+  try {
+    await storage.addLog(request.log)
+    sendResponse(createResponse(true, null, '日志已添加'))
+  } catch (error) {
+    handleError(error, '添加日志', sendResponse)
+  }
+}
+
+async function handleClearLogs(sendResponse) {
+  try {
+    await storage.clearLogs()
+    sendResponse(createResponse(true, null, '日志已清空'))
+  } catch (error) {
+    handleError(error, '清空日志', sendResponse)
+  }
+}
+
+async function handleGetSettings(sendResponse) {
+  try {
+    const settings = await storage.getSettings()
+    sendResponse(createResponse(true, settings))
+  } catch (error) {
+    handleError(error, '获取设置', sendResponse)
+  }
+}
+
+async function handleSaveSettings(request, sendResponse) {
+  try {
+    await storage.saveSettings(request.settings)
+    sendResponse(createResponse(true, null, '设置已保存'))
+  } catch (error) {
+    handleError(error, '保存设置', sendResponse)
+  }
+}
