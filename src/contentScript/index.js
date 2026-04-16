@@ -3,7 +3,7 @@ import {
   POST_MESSAGE_TYPES,
   createPostMessageResponse,
 } from '../render/types/messages.js'
-import { MESSAGE_TYPES as ACTION_MESSAGE_TYPES } from '../render/types/actions.js'
+import { MESSAGE_TYPES as ACTION_MESSAGE_TYPES, ACTION_TYPES } from '../render/types/actions.js'
 import { logger } from './logger.js'
 import { getRecorder } from './recorder.js'
 import { getOverlay } from './overlay.js'
@@ -161,7 +161,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
 
       // 获取录制状态
-      case 'GET_RECORDING_STATUS':
+      case ACTION_MESSAGE_TYPES.RECORDING_STATUS_CHANGED:
         sendResponse({
           success: true,
           data: recorder.getStatus(),
@@ -276,18 +276,18 @@ async function executeAction(action) {
   const { type, params } = action
 
   switch (type) {
-    case 'navigate':
+    case ACTION_TYPES.NAVIGATE:
       window.location.href = params.url
       return { url: params.url }
 
-    case 'click': {
+    case ACTION_TYPES.CLICK: {
       const clickElement = document.querySelector(params.selector)
       if (!clickElement) throw new Error(`未找到元素: ${params.selector}`)
       clickElement.click()
       return { selector: params.selector }
     }
 
-    case 'input': {
+    case ACTION_TYPES.INPUT: {
       const inputElement = document.querySelector(params.selector)
       if (!inputElement) throw new Error(`未找到元素: ${params.selector}`)
       if (params.clearFirst) {
@@ -299,7 +299,7 @@ async function executeAction(action) {
       return { selector: params.selector, value: params.value }
     }
 
-    case 'wait':
+    case ACTION_TYPES.WAIT:
       if (params.type === 'time') {
         await sleep(params.duration)
         return { duration: params.duration }
@@ -309,7 +309,7 @@ async function executeAction(action) {
       }
       break
 
-    case 'scroll':
+    case ACTION_TYPES.SCROLL:
       window.scrollTo({
         left: params.x,
         top: params.y,
@@ -317,7 +317,7 @@ async function executeAction(action) {
       })
       return { x: params.x, y: params.y }
 
-    case 'select': {
+    case ACTION_TYPES.SELECT: {
       const selectElement = document.querySelector(params.selector)
       if (!selectElement) throw new Error(`未找到元素: ${params.selector}`)
       selectElement.value = params.value
@@ -325,7 +325,7 @@ async function executeAction(action) {
       return { selector: params.selector, value: params.value }
     }
 
-    case 'keypress': {
+    case ACTION_TYPES.KEYPRESS: {
       const event = new KeyboardEvent('keydown', {
         key: params.key,
         ctrlKey: params.modifiers?.includes('Control'),

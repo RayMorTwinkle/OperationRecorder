@@ -60,7 +60,9 @@ async function stopRecording() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     if (!tab) return
 
-    const response = await chrome.tabs.sendMessage(tab.id, { type: ACTION_MESSAGE_TYPES.STOP_RECORDING })
+    const response = await chrome.tabs.sendMessage(tab.id, {
+      type: ACTION_MESSAGE_TYPES.STOP_RECORDING,
+    })
     isRecording.value = false
 
     if (response.success) {
@@ -99,7 +101,7 @@ async function executeScript(scriptId) {
 
     // 发送消息到 background 执行脚本
     const response = await chrome.runtime.sendMessage({
-      type: 'EXECUTE_SCRIPT',
+      type: ACTION_MESSAGE_TYPES.EXECUTE_SCRIPT,
       scriptId,
       tabId: tab.id,
     })
@@ -415,7 +417,7 @@ function viewScriptDetails(scriptId) {
 
     <!-- 编辑脚本弹窗 -->
     <n-modal v-model:show="showEditScriptModal" title="编辑脚本" preset="card" class="w-350px">
-      <n-form :label-placement="left" label-width="80px">
+      <n-form :label-placement="'left'" label-width="80px">
         <n-form-item label="脚本名称">
           <n-input v-model:value="editingScript.name" placeholder="输入脚本名称" />
         </n-form-item>

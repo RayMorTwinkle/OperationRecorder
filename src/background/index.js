@@ -82,7 +82,7 @@ async function handleOperationRecorderMessage(request, sender, sendResponse) {
 
     // 处理特定的后台消息
     switch (request.type) {
-      case 'EXECUTE_SCRIPT': {
+      case ACTION_MESSAGE_TYPES.EXECUTE_SCRIPT: {
         const execResult = await executor.execute(request.scriptId, { tabId: request.tabId })
         sendResponse(createResponse(execResult.success, execResult))
         return true
