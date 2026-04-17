@@ -57,6 +57,34 @@ const actionIndexToEdit = ref(-1)
 const newActionType = ref(ACTION_TYPES.CLICK)
 const newActionParams = ref({})
 
+// 定时任务相关
+const isScheduleEnabled = ref(false)
+const scheduleType = ref('interval')
+const cronExpression = ref('0 0 * * *')
+const intervalValue = ref(1)
+const intervalUnit = ref('hour')
+const scheduleTime = ref(null)
+const executionTab = ref('current')
+
+const scheduleOptions = [
+  { label: 'Cron 表达式', value: 'cron' },
+  { label: '间隔执行', value: 'interval' },
+  { label: '单次执行', value: 'once' },
+]
+
+const intervalOptions = [
+  { label: '分钟', value: 'minute' },
+  { label: '小时', value: 'hour' },
+  { label: '天', value: 'day' },
+  { label: '周', value: 'week' },
+]
+
+const executionTabOptions = [
+  { label: '当前标签页', value: 'current' },
+  { label: '新标签页', value: 'new' },
+  { label: '后台标签页', value: 'background' },
+]
+
 const filteredScripts = computed(() => {
   if (!searchQuery.value) return scriptsStore.scriptList
   return scriptsStore.scriptList.filter(
@@ -150,6 +178,10 @@ async function stopRecording() {
 }
 
 async function executeScript(scriptId) {
+  const startTime = Date.now()
+  let status = 'success'
+  let errorMessage = null
+
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     if (!tab) {
@@ -182,11 +214,18 @@ async function executeScript(scriptId) {
     if (response.success) {
       message.success('脚本执行成功')
     } else {
+      status = 'failed'
+      errorMessage = response.message
       message.error('脚本执行失败: ' + response.message)
     }
   } catch (error) {
+    status = 'failed'
+    errorMessage = error.message
     message.error('执行脚本失败: ' + error.message)
   } finally {
+    const duration = Date.now() - startTime
+    scriptsStore.addExecutionHistory(scriptId, status, duration, errorMessage)
+    await scriptsStore.saveScript(scriptsStore.getScriptById(scriptId))
     isExecuting.value = false
     isPausedExecuting.value = false
     executionProgress.value = 0
@@ -416,16 +455,6 @@ function openVariableManager(scriptId) {
   showVariableManagerModal.value = true
 }
 
-function openScheduleManager(scriptId) {
-  const script = scriptsStore.getScriptById(scriptId)
-  if (!script) {
-    message.error('脚本不存在')
-    return
-  }
-  selectedScript.value = script
-  showScheduleModal.value = true
-}
-
 function openExecutionHistory(scriptId) {
   const script = scriptsStore.getScriptById(scriptId)
   if (!script) {
@@ -434,6 +463,154 @@ function openExecutionHistory(scriptId) {
   }
   selectedScript.value = script
   showExecutionHistoryModal.value = true
+}
+
+// 变量管理
+function addNewVariable() {
+  if (!selectedScript.value) return
+
+  const newVar = {
+    name: `变量${selectedScript.value.variables.length + 1}`,
+    type: 'string',
+    value: '',
+  }
+  selectedScript.value.variables.push(newVar)
+}
+
+function editVariable() {
+  // 这里可以添加更复杂的编辑逻辑，比如弹窗编辑
+  message.info('编辑变量功能即将完善')
+}
+
+function removeVariable(variableName) {
+  if (!selectedScript.value) return
+
+  const index = selectedScript.value.variables.findIndex((v) => v.name === variableName)
+  if (index !== -1) {
+    selectedScript.value.variables.splice(index, 1)
+    message.success('变量已删除')
+  }
+}
+
+async function saveVariables() {
+  if (!selectedScript.value) return
+
+  try {
+    await scriptsStore.saveScript(selectedScript.value)
+    message.success('变量已保存')
+    showVariableManagerModal.value = false
+  } catch (error) {
+    message.error('保存变量失败: ' + error.message)
+  }
+}
+
+async function clearExecutionHistory() {
+  if (!selectedScript.value) return
+
+  try {
+    scriptsStore.clearExecutionHistory(selectedScript.value.id)
+    await scriptsStore.saveScript(selectedScript.value)
+    message.success('执行历史已清空')
+  } catch (error) {
+    message.error('清空执行历史失败: ' + error.message)
+  }
+}
+
+// 定时任务方法
+function formatSchedule(schedule) {
+  if (!schedule) return '无'
+
+  switch (schedule.type) {
+    case 'cron':
+      return `Cron: ${schedule.expression}`
+    case 'interval':
+      return `间隔: ${schedule.value} ${schedule.unit}`
+    case 'once':
+      return `单次: ${new Date(schedule.time).toLocaleString()}`
+    default:
+      return '未知'
+  }
+}
+
+async function saveSchedule() {
+  if (!selectedScript.value) return
+
+  try {
+    let schedule = null
+    if (isScheduleEnabled.value) {
+      switch (scheduleType.value) {
+        case 'cron':
+          schedule = {
+            type: 'cron',
+            expression: cronExpression.value,
+            executionTab: executionTab.value,
+          }
+          break
+        case 'interval':
+          schedule = {
+            type: 'interval',
+            value: intervalValue.value,
+            unit: intervalUnit.value,
+            executionTab: executionTab.value,
+          }
+          break
+        case 'once':
+          schedule = {
+            type: 'once',
+            time: scheduleTime.value?.getTime(),
+            executionTab: executionTab.value,
+          }
+          break
+      }
+    }
+
+    scriptsStore.setSchedule(selectedScript.value.id, schedule)
+    await scriptsStore.saveScript(selectedScript.value)
+    message.success('定时任务已保存')
+    showScheduleModal.value = false
+  } catch (error) {
+    message.error('保存定时任务失败: ' + error.message)
+  }
+}
+
+function openScheduleManager(scriptId) {
+  const script = scriptsStore.getScriptById(scriptId)
+  if (!script) {
+    message.error('脚本不存在')
+    return
+  }
+
+  selectedScript.value = script
+
+  // 初始化定时任务状态
+  if (script.schedule) {
+    isScheduleEnabled.value = true
+    scheduleType.value = script.schedule.type
+    executionTab.value = script.schedule.executionTab || 'current'
+
+    switch (script.schedule.type) {
+      case 'cron':
+        cronExpression.value = script.schedule.expression || '0 0 * * *'
+        break
+      case 'interval':
+        intervalValue.value = script.schedule.value || 1
+        intervalUnit.value = script.schedule.unit || 'hour'
+        break
+      case 'once':
+        scheduleTime.value = script.schedule.time ? new Date(script.schedule.time) : null
+        break
+    }
+  } else {
+    isScheduleEnabled.value = false
+    scheduleType.value = 'interval'
+    cronExpression.value = '0 0 * * *'
+    intervalValue.value = 1
+    intervalUnit.value = 'hour'
+    scheduleTime.value = null
+    executionTab.value = 'current'
+  }
+
+  showScheduleModal.value = true
 }
 
 const availableActions = Object.entries(ACTION_CONFIG).map(([type, config]) => ({
@@ -572,6 +749,14 @@ const availableActions = Object.entries(ACTION_CONFIG).map(([type, config]) => (
                   <div class="text-xs text-gray-500">
                     {{ script.actions.length }} 个动作 · {{ formatTime(script.updatedAt) }}
                   </div>
+                  <div
+                    v-if="script.tags && script.tags.length > 0"
+                    class="flex flex-wrap gap-1 mt-1"
+                  >
+                    <n-tag v-for="tag in script.tags" :key="tag" size="tiny" type="info">
+                      {{ tag }}
+                    </n-tag>
+                  </div>
                 </div>
                 <div class="flex items-center gap-1">
                   <n-button
@@ -667,6 +852,14 @@ const availableActions = Object.entries(ACTION_CONFIG).map(([type, config]) => (
                 <div>
                   <div class="text-sm text-gray-500">最后执行</div>
                   <div>{{ formatTime(selectedScript.lastExecutionTime) }}</div>
+                </div>
+                <div v-if="selectedScript.tags && selectedScript.tags.length > 0">
+                  <div class="text-sm text-gray-500">标签</div>
+                  <div class="flex flex-wrap gap-1 mt-1">
+                    <n-tag v-for="tag in selectedScript.tags" :key="tag" size="small">
+                      {{ tag }}
+                    </n-tag>
+                  </div>
                 </div>
 
                 <div class="flex gap-2 pt-2">
@@ -800,6 +993,13 @@ const availableActions = Object.entries(ACTION_CONFIG).map(([type, config]) => (
             :rows="3"
           />
         </n-form-item>
+        <n-form-item label="标签">
+          <n-select
+            v-model:value="editingScript.tags"
+            placeholder="输入标签，按回车添加"
+            multiple
+          />
+        </n-form-item>
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
@@ -894,26 +1094,102 @@ const availableActions = Object.entries(ACTION_CONFIG).map(([type, config]) => (
 
     <!-- 变量管理弹窗 -->
     <n-modal v-model:show="showVariableManagerModal" title="变量管理" preset="card" class="w-400px">
-      <div class="text-center py-8 text-gray-500">
-        <n-icon :component="ListCircleOutline" class="text-4xl mb-2 opacity-50" />
-        <div class="text-sm">变量管理功能即将推出</div>
+      <div v-if="selectedScript" class="space-y-4">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-medium">变量列表</h3>
+          <n-button size="small" @click="addNewVariable">
+            <template #icon>
+              <n-icon :component="AddOutline" />
+            </template>
+            添加变量
+          </n-button>
+        </div>
+
+        <div
+          v-if="selectedScript.variables.length === 0"
+          class="py-4 text-center text-gray-500 text-sm"
+        >
+          暂无变量
+        </div>
+
+        <div v-else class="space-y-2 max-h-300px overflow-y-auto">
+          <div
+            v-for="variable in selectedScript.variables"
+            :key="variable.name"
+            class="p-3 rounded bg-gray-50 dark:bg-gray-800"
+          >
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-sm">{{ variable.name }}</div>
+                <div class="text-xs text-gray-500">{{ variable.type }}</div>
+              </div>
+              <div class="flex gap-1">
+                <n-button text size="tiny" @click="editVariable(variable)"> 编辑 </n-button>
+                <n-button text size="tiny" type="error" @click="removeVariable(variable.name)">
+                  删除
+                </n-button>
+              </div>
+            </div>
+            <div class="mt-1">
+              <n-input v-model:value="variable.value" placeholder="变量值" size="small" />
+            </div>
+          </div>
+        </div>
       </div>
       <template #footer>
-        <div class="flex justify-end">
+        <div class="flex justify-end gap-2">
           <n-button @click="showVariableManagerModal = false">关闭</n-button>
+          <n-button type="primary" @click="saveVariables">保存</n-button>
         </div>
       </template>
     </n-modal>
 
     <!-- 定时任务弹窗 -->
     <n-modal v-model:show="showScheduleModal" title="定时任务" preset="card" class="w-400px">
-      <div class="text-center py-8 text-gray-500">
-        <n-icon :component="CalendarOutline" class="text-4xl mb-2 opacity-50" />
-        <div class="text-sm">定时任务功能即将推出</div>
+      <div v-if="selectedScript" class="space-y-4">
+        <div class="flex items-center gap-2">
+          <n-switch v-model:value="isScheduleEnabled" />
+          <span class="text-sm">启用定时任务</span>
+        </div>
+
+        <div v-if="isScheduleEnabled" class="space-y-3">
+          <n-form-item label="执行频率">
+            <n-select v-model:value="scheduleType" :options="scheduleOptions" />
+          </n-form-item>
+
+          <n-form-item v-if="scheduleType === 'cron'" label="Cron 表达式">
+            <n-input v-model:value="cronExpression" placeholder="例如: 0 0 * * * (每天午夜)" />
+            <div class="text-xs text-gray-500 mt-1">格式: 分 时 日 月 周</div>
+          </n-form-item>
+
+          <n-form-item v-else-if="scheduleType === 'interval'" label="间隔时间">
+            <div class="flex gap-2">
+              <n-input v-model:value="intervalValue" type="number" min="1" />
+              <n-select v-model:value="intervalUnit" :options="intervalOptions" />
+            </div>
+          </n-form-item>
+
+          <n-form-item v-else-if="scheduleType === 'once'" label="执行时间">
+            <n-date-picker v-model:value="scheduleTime" type="datetime" />
+          </n-form-item>
+
+          <n-form-item label="执行标签页">
+            <n-select v-model:value="executionTab" :options="executionTabOptions" />
+          </n-form-item>
+        </div>
+
+        <div
+          v-if="selectedScript.schedule"
+          class="p-3 rounded bg-blue-50 dark:bg-blue-900/30 text-sm"
+        >
+          <div class="font-medium mb-1">当前定时任务</div>
+          <div>{{ formatSchedule(selectedScript.schedule) }}</div>
+        </div>
       </div>
       <template #footer>
-        <div class="flex justify-end">
-          <n-button @click="showScheduleModal = false">关闭</n-button>
+        <div class="flex justify-end gap-2">
+          <n-button @click="showScheduleModal = false">取消</n-button>
+          <n-button type="primary" @click="saveSchedule">保存</n-button>
         </div>
       </template>
     </n-modal>
@@ -925,9 +1201,39 @@ const availableActions = Object.entries(ACTION_CONFIG).map(([type, config]) => (
       preset="card"
       class="w-400px"
     >
-      <div class="text-center py-8 text-gray-500">
-        <n-icon :component="TimeOutline" class="text-4xl mb-2 opacity-50" />
-        <div class="text-sm">执行历史功能即将推出</div>
+      <div v-if="selectedScript" class="space-y-4">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-medium">执行记录</h3>
+          <n-button size="small" @click="clearExecutionHistory"> 清空历史 </n-button>
+        </div>
+
+        <div
+          v-if="!selectedScript.executionHistory || selectedScript.executionHistory.length === 0"
+          class="py-4 text-center text-gray-500 text-sm"
+        >
+          暂无执行记录
+        </div>
+
+        <div v-else class="space-y-2 max-h-300px overflow-y-auto">
+          <div
+            v-for="history in selectedScript.executionHistory"
+            :key="history.id"
+            class="p-3 rounded bg-gray-50 dark:bg-gray-800"
+          >
+            <div class="flex items-center justify-between">
+              <div class="font-medium text-sm">{{ formatTime(history.timestamp) }}</div>
+              <n-tag :type="history.status === 'success' ? 'success' : 'error'" size="small">
+                {{ history.status === 'success' ? '成功' : '失败' }}
+              </n-tag>
+            </div>
+            <div class="mt-1 text-xs text-gray-500">
+              执行时长: {{ Math.round(history.duration / 1000) }} 秒
+            </div>
+            <div v-if="history.error" class="mt-1 text-xs text-red-500">
+              错误: {{ history.error }}
+            </div>
+          </div>
+        </div>
       </div>
       <template #footer>
         <div class="flex justify-end">

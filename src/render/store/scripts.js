@@ -298,6 +298,93 @@ export const useScriptsStore = defineStore('scripts', () => {
     return clonedScript
   }
 
+  // 标签管理
+  function addTag(scriptId, tag) {
+    const script = scripts.value[scriptId]
+    if (!script) return false
+
+    if (!script.tags.includes(tag)) {
+      script.tags.push(tag)
+      script.updatedAt = Date.now()
+      return true
+    }
+    return false
+  }
+
+  function removeTag(scriptId, tag) {
+    const script = scripts.value[scriptId]
+    if (!script) return false
+
+    const index = script.tags.indexOf(tag)
+    if (index !== -1) {
+      script.tags.splice(index, 1)
+      script.updatedAt = Date.now()
+      return true
+    }
+    return false
+  }
+
+  function updateTags(scriptId, tags) {
+    const script = scripts.value[scriptId]
+    if (!script) return false
+
+    script.tags = tags
+    script.updatedAt = Date.now()
+    return true
+  }
+
+  // 获取所有标签
+  const allTags = computed(() => {
+    const tags = new Set()
+    Object.values(scripts.value).forEach((script) => {
+      script.tags?.forEach((tag) => tags.add(tag))
+    })
+    return Array.from(tags).sort()
+  })
+
+  // 执行历史记录
+  function addExecutionHistory(scriptId, status, duration, error = null) {
+    const script = scripts.value[scriptId]
+    if (!script) return false
+
+    if (!script.executionHistory) {
+      script.executionHistory = []
+    }
+
+    const historyItem = {
+      id: generateId(),
+      timestamp: Date.now(),
+      status,
+      duration,
+      error,
+    }
+
+    script.executionHistory.unshift(historyItem)
+    // 只保留最近 50 条记录
+    if (script.executionHistory.length > 50) {
+      script.executionHistory = script.executionHistory.slice(0, 50)
+    }
+
+    script.lastExecutionTime = Date.now()
+    script.updatedAt = Date.now()
+    return true
+  }
+
+  function getExecutionHistory(scriptId) {
+    const script = scripts.value[scriptId]
+    if (!script) return []
+    return script.executionHistory || []
+  }
+
+  function clearExecutionHistory(scriptId) {
+    const script = scripts.value[scriptId]
+    if (!script) return false
+
+    script.executionHistory = []
+    script.updatedAt = Date.now()
+    return true
+  }
+
   return {
     // State
     scripts,
@@ -309,6 +396,7 @@ export const useScriptsStore = defineStore('scripts', () => {
     scriptList,
     currentScript,
     getScriptById,
+    allTags,
 
     // Actions
     loadScripts,
@@ -339,5 +427,15 @@ export const useScriptsStore = defineStore('scripts', () => {
 
     // 复制脚本
     cloneScript,
+
+    // 标签管理
+    addTag,
+    removeTag,
+    updateTags,
+
+    // 执行历史
+    addExecutionHistory,
+    getExecutionHistory,
+    clearExecutionHistory,
   }
 })

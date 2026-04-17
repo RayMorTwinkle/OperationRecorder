@@ -358,6 +358,7 @@ export function createScript(name, description = '') {
     actions: [],
     variables: [],
     schedule: null,
+    tags: [],
     createdAt: Date.now(),
     updatedAt: Date.now(),
     lastExecutionTime: null,
