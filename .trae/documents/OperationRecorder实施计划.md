@@ -8,6 +8,7 @@
 **目标用户**: 需要自动化重复性浏览器操作的用户和 AI 助手
 
 **基于现有项目**: [template-chrome-crx-vue-js](https://gitcode.com/BluerAngala/template-chrome-crx-vue-js)
+
 - Vue 3 + Vite + UnoCSS
 - Element Plus (Naive UI)
 - Chrome Extension MV3
@@ -49,6 +50,7 @@
 ### 2.2 技术栈
 
 **现有技术栈（保留）**:
+
 - **前端框架**: Vue 3 + Composition API
 - **构建工具**: Vite + @crxjs/vite-plugin
 - **样式方案**: UnoCSS + Naive UI
@@ -56,6 +58,7 @@
 - **浏览器 API**: webextension-polyfill
 
 **新增技术栈**:
+
 - **拖拽交互**: vue-draggable-plus (SortableJS Vue3 封装)
 - **MCP 协议**: 自定义 JSON-RPC 实现
 - **Chrome DevTools**: chrome.debugger API
@@ -67,18 +70,18 @@
 
 #### 录制的动作类型
 
-| 动作类型 | 参数 | 说明 |
-|---------|------|------|
-| `navigate` | `{ url: string }` | 打开指定 URL |
-| `click` | `{ selector: string, selectorType: 'css' | 'xpath' }` | 点击页面元素 |
-| `input` | `{ selector: string, value: string, selectorType: 'css' | 'xpath' }` | 输入文本 |
-| `wait` | `{ type: 'element' | 'time', target?: string, duration?: number }` | 等待元素或时间 |
-| `scroll` | `{ y: number, x?: number }` | 滚动页面 |
-| `select` | `{ selector: string, value: string }` | 选择下拉框选项 |
-| `extract` | `{ selector: string, variable: string, attribute?: string }` | 提取数据到变量 |
-| `keypress` | `{ key: string, modifiers?: string[] }` | 键盘按键 |
-| `hover` | `{ selector: string }` | 鼠标悬停 |
-| `network` | `{ urlPattern: string, method?: string }` | 网络请求拦截（可选） |
+| 动作类型   | 参数                                                         | 说明                                          |
+| ---------- | ------------------------------------------------------------ | --------------------------------------------- | -------------- |
+| `navigate` | `{ url: string }`                                            | 打开指定 URL                                  |
+| `click`    | `{ selector: string, selectorType: 'css'                     | 'xpath' }`                                    | 点击页面元素   |
+| `input`    | `{ selector: string, value: string, selectorType: 'css'      | 'xpath' }`                                    | 输入文本       |
+| `wait`     | `{ type: 'element'                                           | 'time', target?: string, duration?: number }` | 等待元素或时间 |
+| `scroll`   | `{ y: number, x?: number }`                                  | 滚动页面                                      |
+| `select`   | `{ selector: string, value: string }`                        | 选择下拉框选项                                |
+| `extract`  | `{ selector: string, variable: string, attribute?: string }` | 提取数据到变量                                |
+| `keypress` | `{ key: string, modifiers?: string[] }`                      | 键盘按键                                      |
+| `hover`    | `{ selector: string }`                                       | 鼠标悬停                                      |
+| `network`  | `{ urlPattern: string, method?: string }`                    | 网络请求拦截（可选）                          |
 
 #### 录制流程
 
@@ -110,7 +113,7 @@ function generateSelector(element) {
   if (element.name) return `[name="${element.name}"]`
 
   const stableClasses = Array.from(element.classList)
-    .filter(c => !c.match(/^(css-|styled-|sc-|emotion-)/))
+    .filter((c) => !c.match(/^(css-|styled-|sc-|emotion-)/))
     .join('.')
   if (stableClasses) return `.${stableClasses}`
 
@@ -128,6 +131,7 @@ function generateSelector(element) {
 #### 动作块设计
 
 每个动作块包含：
+
 - 动作类型图标（@vicons/ionicons5）
 - 动作名称
 - 参数编辑表单
@@ -413,12 +417,12 @@ class MCPServer {
     const { method, params, id } = request
 
     if (method === 'tools/list') {
-      return { tools: this.tools.map(t => ({ name: t.name, description: t.description })) }
+      return { tools: this.tools.map((t) => ({ name: t.name, description: t.description })) }
     }
 
     if (method.startsWith('tools/call/')) {
       const toolName = method.replace('tools/call/', '')
-      const tool = this.tools.find(t => t.name === toolName)
+      const tool = this.tools.find((t) => t.name === toolName)
       if (!tool) throw new Error(`Unknown tool: ${toolName}`)
 
       const result = await tool.handler(params)
@@ -697,31 +701,31 @@ operation-recorder/
 
 ### 需要修改的现有文件
 
-| 文件 | 修改内容 |
-|------|---------|
-| `src/manifest.js` | 添加 debugger、tabs 权限 |
-| `src/background/index.js` | 添加 MCP 服务器、定时任务初始化 |
-| `src/contentScript/index.js` | 添加录制监听器 |
-| `package.json` | 添加新依赖 |
+| 文件                         | 修改内容                        |
+| ---------------------------- | ------------------------------- |
+| `src/manifest.js`            | 添加 debugger、tabs 权限        |
+| `src/background/index.js`    | 添加 MCP 服务器、定时任务初始化 |
+| `src/contentScript/index.js` | 添加录制监听器                  |
+| `package.json`               | 添加新依赖                      |
 
 ### 需要新建的文件
 
-| 文件 | 说明 |
-|------|------|
-| `src/background/mcp-server.js` | MCP 协议实现 |
-| `src/background/scheduler.js` | 定时任务管理 |
-| `src/background/executor.js` | 脚本执行引擎 |
-| `src/contentScript/recorder.js` | 录制逻辑 |
-| `src/contentScript/selector.js` | 选择器生成算法 |
-| `src/contentScript/overlay.js` | 录制悬浮工具栏 |
-| `src/render/components/ScriptList.vue` | 脚本列表组件 |
+| 文件                                     | 说明           |
+| ---------------------------------------- | -------------- |
+| `src/background/mcp-server.js`           | MCP 协议实现   |
+| `src/background/scheduler.js`            | 定时任务管理   |
+| `src/background/executor.js`             | 脚本执行引擎   |
+| `src/contentScript/recorder.js`          | 录制逻辑       |
+| `src/contentScript/selector.js`          | 选择器生成算法 |
+| `src/contentScript/overlay.js`           | 录制悬浮工具栏 |
+| `src/render/components/ScriptList.vue`   | 脚本列表组件   |
 | `src/render/components/ScriptEditor.vue` | 脚本编辑器组件 |
-| `src/render/components/ActionBlock.vue` | 动作块组件 |
-| `src/render/composables/useScripts.js` | 脚本 CRUD |
-| `src/render/composables/useRecording.js` | 录制控制 |
-| `src/render/composables/useExecution.js` | 执行控制 |
-| `src/render/composables/useMCP.js` | MCP 通信 |
-| `src/render/types/actions.js` | 动作类型定义 |
+| `src/render/components/ActionBlock.vue`  | 动作块组件     |
+| `src/render/composables/useScripts.js`   | 脚本 CRUD      |
+| `src/render/composables/useRecording.js` | 录制控制       |
+| `src/render/composables/useExecution.js` | 执行控制       |
+| `src/render/composables/useMCP.js`       | MCP 通信       |
+| `src/render/types/actions.js`            | 动作类型定义   |
 
 ## 六、实施步骤
 
@@ -807,6 +811,7 @@ operation-recorder/
 ```
 
 **新增依赖说明**:
+
 - `pinia`: Vue 3 状态管理（替代手动状态）
 - `vue-draggable-plus`: Vue 3 拖拽排序
 - `uuid`: 生成唯一 ID

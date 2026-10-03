@@ -452,8 +452,8 @@ class RecordingOverlay {
     this.overlay.style.display = 'block'
     this.isVisible = true
 
-    // 自动开始录制
-    this.handleStart()
+    // 更新 UI 以反映当前录制状态
+    this.updateUI()
   }
 
   /**

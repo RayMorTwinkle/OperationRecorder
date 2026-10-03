@@ -21,6 +21,52 @@ export const MESSAGE_TYPES = {
 
   // ContentScript 状态
   CONTENT_SCRIPT_READY: 'contentScriptReady',
+
+  // ==================== OperationRecorder 录制相关 ====================
+  START_RECORDING: 'start_recording',
+  STOP_RECORDING: 'stop_recording',
+  PAUSE_RECORDING: 'pause_recording',
+  RESUME_RECORDING: 'resume_recording',
+  RECORD_ACTION: 'record_action',
+  RECORDING_STATUS_CHANGED: 'recording_status_changed',
+  GET_RECORDING_STATUS: 'GET_RECORDING_STATUS',
+  GET_RECORDED_ACTIONS: 'GET_RECORDED_ACTIONS',
+  CLEAR_RECORDED_ACTIONS: 'CLEAR_RECORDED_ACTIONS',
+
+  // ==================== OperationRecorder 执行相关 ====================
+  EXECUTE_SCRIPT: 'EXECUTE_SCRIPT',
+  EXECUTION_STATUS_CHANGED: 'execution_status_changed',
+  PAUSE_EXECUTION: 'PAUSE_EXECUTION',
+  RESUME_EXECUTION: 'RESUME_EXECUTION',
+  STOP_EXECUTION: 'STOP_EXECUTION',
+
+  // ==================== OperationRecorder 脚本管理 ====================
+  GET_SCRIPTS: 'GET_SCRIPTS',
+  SAVE_SCRIPT: 'SAVE_SCRIPT',
+  DELETE_SCRIPT: 'DELETE_SCRIPT',
+  IMPORT_SCRIPT: 'IMPORT_SCRIPT',
+  EXPORT_SCRIPT: 'EXPORT_SCRIPT',
+
+  // ==================== OperationRecorder 日志 ====================
+  GET_LOGS: 'GET_LOGS',
+  CLEAR_LOGS: 'CLEAR_LOGS',
+
+  // ==================== OperationRecorder 设置 ====================
+  GET_SETTINGS: 'GET_SETTINGS',
+  SAVE_SETTINGS: 'SAVE_SETTINGS',
+
+  // ==================== OperationRecorder 数据管理 ====================
+  EXPORT_ALL_DATA: 'EXPORT_ALL_DATA',
+  IMPORT_ALL_DATA: 'IMPORT_ALL_DATA',
+  CLEAR_ALL_DATA: 'CLEAR_ALL_DATA',
+
+  // ==================== OperationRecorder MCP ====================
+  MCP_REQUEST: 'mcp_request',
+  MCP_RESPONSE: 'mcp_response',
+
+  // ==================== 动作执行 ====================
+  EXECUTE_ACTION: 'EXECUTE_ACTION',
+  HIGHLIGHT_ELEMENT: 'HIGHLIGHT_ELEMENT',
 }
 
 // PostMessage 消息类型

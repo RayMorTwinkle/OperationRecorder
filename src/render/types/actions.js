@@ -268,6 +268,7 @@ export const ACTION_CONFIG = {
 
 // 执行状态
 export const EXECUTION_STATUS = {
+  IDLE: 'idle',
   PENDING: 'pending',
   RUNNING: 'running',
   SUCCESS: 'success',

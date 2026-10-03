@@ -5,9 +5,11 @@
 ### 阶段一：基础框架与存储 ✅
 
 #### 已修改文件
+
 - `src/manifest.js` - 添加 debugger、history、activeTab 权限
 
 #### 已创建文件
+
 1. **src/render/types/actions.js**
    - 定义了 11 种动作类型（NAVIGATE, CLICK, INPUT, WAIT, SCROLL, SELECT, EXTRACT, KEYPRESS, HOVER, NETWORK, IF, GOTO）
    - 每种动作类型的配置（图标、参数、描述）
@@ -49,6 +51,7 @@
    - Store 入口文件
 
 #### 已安装依赖
+
 - `pinia` - Vue 3 状态管理
 - `vue-draggable-plus` - 拖拽排序
 - `uuid` - 生成唯一 ID
@@ -58,6 +61,7 @@
 ### 阶段二：录制功能 ✅
 
 #### 已创建文件
+
 1. **src/contentScript/selector.js**
    - 智能选择器生成算法
    - 优先级：data-testid > id > name > 稳定类名 > 标签+属性 > 路径
@@ -81,6 +85,7 @@
    - 现代化 UI 设计
 
 #### 已修改文件
+
 - **src/contentScript/index.js**
   - 集成录制器和悬浮工具栏
   - 处理录制相关消息
@@ -93,6 +98,7 @@
 ### 阶段三：UI 界面 ✅
 
 #### 已修改文件
+
 - **src/render/views/popup/Popup.vue**
   - 重写为 OperationRecorder 主界面
   - 录制控制区（开始/停止录制按钮）
@@ -112,6 +118,7 @@
 ### 阶段四：执行引擎 ✅
 
 #### 已创建文件
+
 - **src/background/executor.js**
   - ExecutionEngine 类
   - 脚本执行流程
@@ -127,6 +134,7 @@
 ### 阶段五：定时任务 ✅
 
 #### 已创建文件
+
 - **src/background/scheduler.js**
   - Scheduler 类
   - Chrome Alarms API 集成
@@ -140,6 +148,7 @@
 ### 阶段六：MCP 服务器 ✅
 
 #### 已创建文件
+
 - **src/background/mcp-server.js**
   - MCPServer 类
   - JSON-RPC 2.0 协议实现
@@ -160,6 +169,7 @@
     - update_settings - 更新设置
 
 #### 已修改文件
+
 - **src/background/index.js**
   - 初始化执行引擎、调度器、MCP 服务器
   - 集成 OperationRecorder 消息处理
@@ -170,6 +180,7 @@
 ### 功能清单
 
 ✅ **录制功能**
+
 - 点击录制按钮开始录制
 - 自动捕获页面操作（点击、输入、导航等）
 - 智能生成稳定的选择器
@@ -177,29 +188,34 @@
 - 停止录制后自动生成脚本
 
 ✅ **脚本管理**
+
 - 创建、编辑、删除脚本
 - 脚本列表展示
 - 导入/导出脚本
 - 执行历史记录
 
 ✅ **执行功能**
+
 - 执行脚本
 - 重试机制（最多3次）
 - 执行日志
 - 元素高亮预览
 
 ✅ **定时任务**
+
 - 间隔执行（如每48小时）
 - 每天特定时间执行
 - 每周特定星期几执行
 - 浏览器启动检测
 
 ✅ **MCP 服务器**
+
 - 14 个工具供 AI 调用
 - JSON-RPC 2.0 协议
 - 支持脚本管理、录制、执行、截图等
 
 ✅ **UI 界面**
+
 - Popup 主界面（录制控制、脚本列表）
 - Options 设置页面（设置、数据管理、关于）
 - 录制悬浮工具栏
@@ -262,7 +278,75 @@ src/
 
 ---
 
+### 问题修复记录
+
+#### 2026-04-14 - Content Script 注入问题
+
+**问题**: 开始录制失败，提示无法加载文件 `assets/index.js-loader-CC5USPBn.js`
+
+**原因**:
+
+- 构建后的文件名包含 hash（如 `index.js-loader-C8QiBDr2.js`）
+- 代码中硬编码了旧的文件名
+
+**修复**: 使用动态方式注入 content script：
+
+```javascript
+await chrome.scripting.executeScript({
+  target: { tabId: tab.id },
+  func: () => {
+    const script = document.createElement('script')
+    script.src = chrome.runtime.getURL('assets/index.js-loader-C8QiBDr2.js')
+    script.type = 'module'
+    document.head.appendChild(script)
+  },
+})
+```
+
+---
+
+### 全链路代码检查清单
+
+#### 1. Popup → Content Script 通信
+
+- [x] `PopupContent.vue` 使用 `MESSAGE_TYPES.START_RECORDING`
+- [x] 自动注入 content script 机制
+- [x] 错误处理和重试
+
+#### 2. Content Script 消息处理
+
+- [x] `contentScript/index.js` 监听 `START_RECORDING`
+- [x] 调用 `recorder.start()`
+- [x] 返回成功响应
+
+#### 3. 录制功能
+
+- [x] `recorder.js` 实现录制逻辑
+- [x] 事件监听（click, input, scroll 等）
+- [x] 动作存储
+
+#### 4. 停止录制 → 创建脚本
+
+- [x] `STOP_RECORDING` 消息处理
+- [x] 返回录制的动作列表
+- [x] `scriptsStore.createNewScript()` 创建脚本
+
+#### 5. 脚本存储
+
+- [x] `storageAPI` 使用 `chrome.storage.local`
+- [x] `loadScripts()` 加载脚本列表
+- [x] 脚本列表显示在 Popup 中
+
+#### 6. 脚本执行
+
+- [x] `EXECUTE_SCRIPT` 消息发送
+- [x] `executor.js` 执行引擎
+- [x] 通过 content script 执行动作
+
+---
+
 ### 下一步优化
+
 1. 可视化脚本编辑器（拖拽编排动作）
 2. 执行历史详情页面
 3. 脚本调试功能

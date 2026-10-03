@@ -81,7 +81,7 @@ class Scheduler {
         // 间隔执行
         return now - lastExecution >= schedule.interval
 
-      case 'daily':
+      case 'daily': {
         // 每天特定时间执行
         if (!schedule.time) return false
         const [hours, minutes] = schedule.time.split(':').map(Number)
@@ -93,8 +93,9 @@ class Scheduler {
         const isSameDay = lastExecutionDate.toDateString() === new Date().toDateString()
 
         return now >= scheduledTime.getTime() && !isSameDay
+      }
 
-      case 'weekly':
+      case 'weekly': {
         // 每周特定星期几执行
         if (!schedule.dayOfWeek || !schedule.time) return false
         const currentDay = new Date().getDay()
@@ -108,6 +109,7 @@ class Scheduler {
         const isSameWeek = this.isSameWeek(lastWeeklyExecution, new Date())
 
         return now >= weeklyScheduledTime.getTime() && !isSameWeek
+      }
 
       default:
         return false

@@ -13,17 +13,21 @@ import {
   EXECUTION_STATUS,
 } from '../types/actions.js'
 
-// 模拟存储 API（实际项目中会从 background 获取）
-const mockStorage = {
-  scripts: {},
+// Chrome Storage API 封装
+const storageAPI = {
   async getScripts() {
-    return this.scripts
+    const result = await chrome.storage.local.get('scripts')
+    return result.scripts || {}
   },
   async saveScript(script) {
-    this.scripts[script.id] = script
+    const scripts = await this.getScripts()
+    scripts[script.id] = script
+    await chrome.storage.local.set({ scripts })
   },
   async deleteScript(scriptId) {
-    delete this.scripts[scriptId]
+    const scripts = await this.getScripts()
+    delete scripts[scriptId]
+    await chrome.storage.local.set({ scripts })
   },
 }
 
@@ -52,9 +56,9 @@ export const useScriptsStore = defineStore('scripts', () => {
     isLoading.value = true
     error.value = null
     try {
-      // 实际项目中通过 message 发送到 background 获取
-      const data = await mockStorage.getScripts()
+      const data = await storageAPI.getScripts()
       scripts.value = data
+      console.log('脚本加载成功:', Object.keys(data).length, '个脚本')
     } catch (err) {
       error.value = err.message
       console.error('加载脚本失败:', err)
@@ -72,8 +76,10 @@ export const useScriptsStore = defineStore('scripts', () => {
   async function saveScript(script) {
     try {
       script.updatedAt = Date.now()
-      await mockStorage.saveScript(script)
-      scripts.value[script.id] = script
+      await storageAPI.saveScript(script)
+      // 使用展开运算符触发响应式更新
+      scripts.value = { ...scripts.value, [script.id]: script }
+      console.log('脚本保存成功:', script.name)
     } catch (err) {
       error.value = err.message
       console.error('保存脚本失败:', err)
@@ -83,11 +89,14 @@ export const useScriptsStore = defineStore('scripts', () => {
 
   async function deleteScript(scriptId) {
     try {
-      await mockStorage.deleteScript(scriptId)
-      delete scripts.value[scriptId]
+      await storageAPI.deleteScript(scriptId)
+      // 使用展开运算符触发响应式更新
+      const { [scriptId]: _, ...rest } = scripts.value
+      scripts.value = rest
       if (currentScriptId.value === scriptId) {
         currentScriptId.value = null
       }
+      console.log('脚本删除成功:', scriptId)
     } catch (err) {
       error.value = err.message
       console.error('删除脚本失败:', err)
@@ -104,7 +113,7 @@ export const useScriptsStore = defineStore('scripts', () => {
   }
 
   // 动作操作
-  function addAction(scriptId, actionType, params = {}, parentId = null) {
+  async function addAction(scriptId, actionType, params = {}, parentId = null) {
     const script = scripts.value[scriptId]
     if (!script) return null
 
@@ -114,13 +123,18 @@ export const useScriptsStore = defineStore('scripts', () => {
       // 添加到父动作的 children 中
       const parent = findAction(script.actions, parentId)
       if (parent && parent.children) {
-        parent.children.push(action)
+        parent.children = [...parent.children, action]
       }
     } else {
-      script.actions.push(action)
+      // 使用展开运算符触发响应式更新
+      script.actions = [...script.actions, action]
     }
 
     script.updatedAt = Date.now()
+
+    // 立即保存到 storage
+    await saveScript(script)
+
     return action
   }
 
