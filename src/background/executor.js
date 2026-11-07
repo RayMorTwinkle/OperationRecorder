@@ -17,6 +17,8 @@ class ExecutionEngine {
     this.isPaused = false
     this.isStopped = false
     this.tabId = null
+    this.actionMap = new Map() // 用于 GOTO 跳转
+    this.loopStack = [] // 用于跟踪循环/条件嵌套
   }
 
   /**
@@ -41,6 +43,11 @@ class ExecutionEngine {
     this.isPaused = false
     this.isStopped = false
     this.tabId = options.tabId
+    this.actionMap.clear()
+    this.loopStack = []
+
+    // 构建动作映射表（用于 GOTO 跳转）
+    this.buildActionMap(script.actions)
 
     // 创建执行日志
     this.log = {
@@ -72,13 +79,18 @@ class ExecutionEngine {
         this.currentActionIndex = i
         const action = script.actions[i]
 
-        const actionResult = await this.executeAction(action, options)
+        const actionResult = await this.executeAction(action, options, script.actions)
         this.log.actions.push(actionResult)
 
         if (!actionResult.success) {
           this.log.status = EXECUTION_STATUS.FAILED
           this.log.error = actionResult.error
           break
+        }
+
+        // 处理 GOTO 跳转
+        if (actionResult.gotoIndex !== undefined) {
+          i = actionResult.gotoIndex
         }
       }
 
@@ -111,13 +123,31 @@ class ExecutionEngine {
   }
 
   /**
+   * 构建动作映射表
+   * @param {Array} actions - 动作列表
+   * @param {string} parentId - 父动作 ID
+   */
+  buildActionMap(actions, parentId = null) {
+    for (let i = 0; i < actions.length; i++) {
+      const action = actions[i]
+      this.actionMap.set(action.id, { index: i, parentId, action })
+
+      // 递归处理子动作
+      if (action.children && action.children.length > 0) {
+        this.buildActionMap(action.children, action.id)
+      }
+    }
+  }
+
+  /**
    * 执行单个动作
    * @param {Object} action - 动作对象
    * @param {Object} options - 执行选项
+   * @param {Array} allActions - 所有动作列表（用于 GOTO）
    * @returns {Promise<Object>} 动作执行结果
    */
-  async executeAction(action, options = {}) {
-    const { type, params } = action
+  async executeAction(action, options = {}, allActions = []) {
+    const { type, params, children } = action
     const startTime = Date.now()
 
     const actionLog = {
@@ -149,11 +179,16 @@ class ExecutionEngine {
         try {
           actionLog.retries = attempt
 
-          const result = await this.performAction(type, params, targetTabId)
+          const result = await this.performAction(type, params, targetTabId, children, allActions)
 
           actionLog.success = true
           actionLog.result = result
           actionLog.endTime = Date.now()
+
+          // 如果有 GOTO 跳转信息，传递给上层
+          if (result && result.gotoIndex !== undefined) {
+            actionLog.gotoIndex = result.gotoIndex
+          }
 
           return actionLog
         } catch (error) {
@@ -183,9 +218,11 @@ class ExecutionEngine {
    * @param {string} type - 动作类型
    * @param {Object} params - 动作参数
    * @param {number} tabId - 标签页 ID
+   * @param {Array} children - 子动作列表（用于 IF）
+   * @param {Array} allActions - 所有动作列表（用于 GOTO）
    * @returns {Promise<any>}
    */
-  async performAction(type, params, tabId) {
+  async performAction(type, params, tabId, children = [], allActions = []) {
     switch (type) {
       case ACTION_TYPES.NAVIGATE:
         await chrome.tabs.update(tabId, { url: params.url })
@@ -203,18 +240,55 @@ class ExecutionEngine {
         // 这些动作在 content script 中执行
         return await this.executeInContentScript(tabId, { type, params })
 
-      case ACTION_TYPES.EXTRACT:
+      case ACTION_TYPES.EXTRACT: {
         const result = await this.executeInContentScript(tabId, { type, params })
         // 保存到变量
         if (result && params.variable) {
           this.variables[params.variable] = result.value
         }
         return result
+      }
 
-      case ACTION_TYPES.IF:
+      case ACTION_TYPES.IF: {
         // 条件判断
         const conditionMet = await this.evaluateCondition(params, tabId)
+
+        // 根据条件执行相应的子动作
+        if (conditionMet && children && children.length > 0) {
+          // 执行 then 分支（假设第一个 child 是 then 分支）
+          const thenActions = children.filter((child) => child.branch === 'then' || !child.branch)
+          for (const childAction of thenActions) {
+            const childResult = await this.executeAction(childAction, { tabId }, allActions)
+            if (!childResult.success) {
+              throw new Error(childResult.error || '条件分支执行失败')
+            }
+          }
+        } else if (!conditionMet && children && children.length > 0) {
+          // 执行 else 分支
+          const elseActions = children.filter((child) => child.branch === 'else')
+          for (const childAction of elseActions) {
+            const childResult = await this.executeAction(childAction, { tabId }, allActions)
+            if (!childResult.success) {
+              throw new Error(childResult.error || '条件分支执行失败')
+            }
+          }
+        }
+
         return { conditionMet }
+      }
+
+      case ACTION_TYPES.GOTO: {
+        // 跳转到指定动作
+        const targetActionId = params.targetActionId
+        const targetInfo = this.actionMap.get(targetActionId)
+
+        if (targetInfo === undefined) {
+          throw new Error(`跳转目标不存在: ${targetActionId}`)
+        }
+
+        // 返回跳转索引，让 execute 方法处理
+        return { gotoIndex: targetInfo.index - 1 } // -1 因为循环会 i++
+      }
 
       default:
         throw new Error(`未知的动作类型: ${type}`)
@@ -283,9 +357,25 @@ class ExecutionEngine {
       case 'variable_equals':
         return this.variables[variable] === value
 
-      case 'variable_contains':
+      case 'variable_contains': {
         const varValue = this.variables[variable]
         return typeof varValue === 'string' && varValue.includes(value)
+      }
+
+      case 'page_contains': {
+        // 在 content script 中检查页面文本
+        try {
+          const result = await this.executeInContentScript(tabId, {
+            type: 'EVALUATE',
+            params: {
+              script: `document.body.textContent.includes('${text.replace(/'/g, "\\'")}')`,
+            },
+          })
+          return result.value === true
+        } catch {
+          return false
+        }
+      }
 
       default:
         return false

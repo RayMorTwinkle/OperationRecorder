@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import 'virtual:uno.css'
 
 import App from './DevTools.vue'
@@ -12,4 +13,6 @@ chrome.devtools.panels.create(
   },
 )
 
-createApp(App).mount('#app')
+const app = createApp(App)
+app.use(createPinia())
+app.mount('#app')

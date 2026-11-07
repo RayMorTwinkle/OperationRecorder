@@ -113,9 +113,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   try {
     switch (request.type) {
+      // 测试消息（用于检查 content script 是否已注入）
+      case MESSAGE_TYPES.TEST:
+        sendResponse({ success: true, message: 'Content Script 已就绪' })
+        break
+
       // 开始录制
       case MESSAGE_TYPES.START_RECORDING:
         logger.info('开始录制')
+        recorder.start()
         overlay.show()
         sendResponse({
           success: true,
@@ -335,6 +341,16 @@ async function executeAction(action) {
       })
       document.dispatchEvent(event)
       return { key: params.key }
+    }
+
+    case 'EVALUATE': {
+      // 执行 JavaScript 代码并返回结果
+      try {
+        const result = eval(params.script)
+        return { value: result }
+      } catch (error) {
+        throw new Error(`脚本执行失败: ${error.message}`)
+      }
     }
 
     default:

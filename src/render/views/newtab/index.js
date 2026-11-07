@@ -1,6 +1,9 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import 'virtual:uno.css'
 
 import App from './NewTab.vue'
 
-createApp(App).mount('#app')
+const app = createApp(App)
+app.use(createPinia())
+app.mount('#app')

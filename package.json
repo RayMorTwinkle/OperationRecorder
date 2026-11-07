@@ -1,9 +1,9 @@
 {
-  "name": "my-crx",
-  "displayName": "my-crx",
-  "version": "0.0.0",
+  "name": "operation-recorder",
+  "displayName": "OperationRecorder",
+  "version": "1.0.0",
   "author": "BluerAngala",
-  "description": "基于create-chrome-ext 创建的快速开发浏览器扩展插件的模板。默认包含popup、sidepanel、options、contentScript、background、manifest.js",
+  "description": "浏览器自动化操作录制与执行工具，支持可视化编排、定时任务和 MCP 协议供 AI 调用",
   "type": "module",
   "license": "MIT",
   "keywords": [

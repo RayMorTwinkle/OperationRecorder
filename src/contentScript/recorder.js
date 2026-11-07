@@ -21,6 +21,7 @@ class Recorder {
     this.handleKeydown = this.handleKeydown.bind(this)
     this.handleScroll = this.handleScroll.bind(this)
     this.handleNavigate = this.handleNavigate.bind(this)
+    this.handleMouseEnter = this.handleMouseEnter.bind(this)
   }
 
   /**
@@ -101,6 +102,11 @@ class Recorder {
       { type: 'keydown', handler: this.handleKeydown },
       { type: 'scroll', handler: this.handleScroll },
     ]
+
+    // 添加 hover 监听（使用 mouseenter 事件，但限制触发频率）
+    this.hoverElements = new Set()
+    document.addEventListener('mouseenter', this.handleMouseEnter, true)
+    this.listeners.push({ type: 'mouseenter', handler: this.handleMouseEnter })
   }
 
   /**
@@ -268,6 +274,60 @@ class Recorder {
         })
       }
     }, 500)
+  }
+
+  /**
+   * 处理鼠标进入事件（hover）
+   * 只记录特定的 hover 元素（如下拉菜单、tooltip 触发器）
+   */
+  handleMouseEnter(event) {
+    if (this.status !== RECORDING_STATUS.RECORDING) return
+
+    const element = event.target
+
+    // 忽略录制工具栏本身的元素
+    if (this.isRecorderElement(element)) return
+
+    // 只记录特定的交互元素
+    const tagName = element.tagName.toLowerCase()
+    const role = element.getAttribute('role')
+    const ariaHasPopup = element.getAttribute('aria-haspopup')
+    const ariaExpanded = element.getAttribute('aria-expanded')
+
+    // 只记录以下类型的 hover：
+    // 1. 有 aria-haspopup 属性的元素（下拉菜单、弹窗触发器）
+    // 2. 有 role="button" 且看起来是交互式的
+    // 3. 有 data-testid 或特定 class 表明是下拉菜单
+    const isDropdownTrigger = ariaHasPopup || ariaExpanded !== null
+    const isInteractiveButton = role === 'button' && element.onclick
+    const isMenuTrigger =
+      element.classList.contains('dropdown') ||
+      element.classList.contains('menu') ||
+      element.closest('[role="menu"]') !== null
+
+    if (!isDropdownTrigger && !isInteractiveButton && !isMenuTrigger) {
+      return
+    }
+
+    // 使用 element 的 selector 作为唯一标识
+    const selector = generateSelector(element)
+
+    // 如果这个元素已经在最近 hover 过，则忽略（3秒内不重复记录同一元素）
+    if (this.hoverElements.has(selector)) return
+
+    // 添加到已 hover 集合
+    this.hoverElements.add(selector)
+
+    // 3秒后从集合中移除，允许再次记录
+    setTimeout(() => {
+      this.hoverElements.delete(selector)
+    }, 3000)
+
+    // 记录 hover 动作
+    this.addAction(ACTION_TYPES.HOVER, {
+      selector,
+      selectorType: 'css',
+    })
   }
 
   /**
